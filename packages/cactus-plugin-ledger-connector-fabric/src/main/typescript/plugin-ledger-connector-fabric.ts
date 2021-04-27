@@ -200,7 +200,7 @@ export class PluginLedgerConnectorFabric
   public async getConsensusAlgorithmFamily(): Promise<
     ConsensusAlgorithmFamily
   > {
-    return ConsensusAlgorithmFamily.AUTHORITY;
+    return ConsensusAlgorithmFamily.Authority;
   }
 
   private async sshExec(
@@ -859,12 +859,12 @@ export class PluginLedgerConnectorFabric
       let out: Buffer;
       let success: boolean;
       switch (invocationType) {
-        case FabricContractInvocationType.CALL: {
+        case FabricContractInvocationType.Call: {
           out = await contract.evaluateTransaction(fnName, ...params);
           success = true;
           break;
         }
-        case FabricContractInvocationType.SEND: {
+        case FabricContractInvocationType.Send: {
           out = await contract.submitTransaction(fnName, ...params);
           success = true;
           break;

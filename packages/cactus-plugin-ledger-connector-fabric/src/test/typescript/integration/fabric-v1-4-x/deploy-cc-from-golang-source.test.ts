@@ -37,6 +37,7 @@ import { IPluginLedgerConnectorFabricOptions } from "../../../../main/typescript
 
 import { DiscoveryOptions } from "fabric-network";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
+import { Configuration } from "@hyperledger/cactus-core-api";
 
 const testCase = "deploys contract from go source";
 const logLevel: LogLevelDesc = "TRACE";
@@ -132,7 +133,7 @@ test(testCase, async (t: Test) => {
     connectionProfile,
     discoveryOptions,
     eventHandlerOptions: {
-      strategy: DefaultEventHandlerStrategy.NETWORKSCOPEALLFORTX,
+      strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
       commitTimeout: 300,
     },
   };
@@ -154,7 +155,8 @@ test(testCase, async (t: Test) => {
   await plugin.registerWebServices(expressApp);
   const apiUrl = `http://localhost:${port}`;
 
-  const apiClient = new FabricApi({ basePath: apiUrl });
+  const config = new Configuration({ basePath: apiUrl });
+  const apiClient = new FabricApi(config);
   const res = await apiClient.deployContractGoSourceV1({
     targetPeerAddresses: ["peer0.org1.example.com:7051"],
     tlsRootCertFiles:
@@ -208,7 +210,7 @@ test(testCase, async (t: Test) => {
     channelName: "mychannel",
     params: [testKey, testValue],
     methodName: "set",
-    invocationType: FabricContractInvocationType.SEND,
+    invocationType: FabricContractInvocationType.Send,
     signingCredential,
   });
   t.ok(setRes, "setRes truthy OK");
@@ -220,7 +222,7 @@ test(testCase, async (t: Test) => {
     channelName: "mychannel",
     params: [testKey],
     methodName: "get",
-    invocationType: FabricContractInvocationType.CALL,
+    invocationType: FabricContractInvocationType.Call,
     signingCredential,
   });
   t.ok(getRes, "getRes truthy OK");

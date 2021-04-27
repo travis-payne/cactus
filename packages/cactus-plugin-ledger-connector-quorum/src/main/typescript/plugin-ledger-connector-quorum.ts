@@ -203,7 +203,7 @@ export class PluginLedgerConnectorQuorum
   public async getConsensusAlgorithmFamily(): Promise<
     ConsensusAlgorithmFamily
   > {
-    return ConsensusAlgorithmFamily.AUTHORITY;
+    return ConsensusAlgorithmFamily.Authority;
   }
 
   public async invokeContract(
@@ -289,12 +289,12 @@ export class PluginLedgerConnectorQuorum
     Checks.truthy(methodRef, `${fnTag} YourContract.${req.methodName}`);
 
     const method: ContractSendMethod = methodRef(...req.params);
-    if (req.invocationType === EthContractInvocationType.CALL) {
+    if (req.invocationType === EthContractInvocationType.Call) {
       contractInstance.methods[req.methodName];
       const callOutput = await (method as any).call();
       const success = true;
       return { success, callOutput };
-    } else if (req.invocationType === EthContractInvocationType.SEND) {
+    } else if (req.invocationType === EthContractInvocationType.Send) {
       if (isWeb3SigningCredentialNone(req.signingCredential)) {
         throw new Error(`${fnTag} Cannot deploy contract with pre-signed TX`);
       }
@@ -335,16 +335,16 @@ export class PluginLedgerConnectorQuorum
     const fnTag = `${this.className}#transact()`;
 
     switch (req.web3SigningCredential.type) {
-      case Web3SigningCredentialType.CACTUSKEYCHAINREF: {
+      case Web3SigningCredentialType.CactusKeychainRef: {
         return this.transactCactusKeychainRef(req);
       }
-      case Web3SigningCredentialType.GETHKEYCHAINPASSWORD: {
+      case Web3SigningCredentialType.GethKeychainPassword: {
         return this.transactGethKeychain(req);
       }
-      case Web3SigningCredentialType.PRIVATEKEYHEX: {
+      case Web3SigningCredentialType.PrivateKeyHex: {
         return this.transactPrivateKey(req);
       }
-      case Web3SigningCredentialType.NONE: {
+      case Web3SigningCredentialType.None: {
         if (req.transactionConfig.rawTransaction) {
           return this.transactSigned(req.transactionConfig.rawTransaction);
         } else {
@@ -453,7 +453,7 @@ export class PluginLedgerConnectorQuorum
       transactionConfig,
       web3SigningCredential: {
         ethAccount,
-        type: Web3SigningCredentialType.PRIVATEKEYHEX,
+        type: Web3SigningCredentialType.PrivateKeyHex,
         secret: privateKeyHex,
       },
     });

@@ -33,6 +33,7 @@ import {
 import { IPluginLedgerConnectorFabricOptions } from "../../../../main/typescript/plugin-ledger-connector-fabric";
 import { DiscoveryOptions } from "fabric-network";
 import { K_CACTUS_FABRIC_TOTAL_TX_COUNT } from "../../../../main/typescript/prometheus-exporter/metrics";
+import { Configuration } from "@hyperledger/cactus-core-api";
 
 /**
  * Use this to debug issues with the fabric node SDK
@@ -111,7 +112,7 @@ test(testCase, async (t: Test) => {
     connectionProfile,
     discoveryOptions,
     eventHandlerOptions: {
-      strategy: DefaultEventHandlerStrategy.NETWORKSCOPEALLFORTX,
+      strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
       commitTimeout: 300,
     },
   };
@@ -132,7 +133,9 @@ test(testCase, async (t: Test) => {
   t.comment(
     `Metrics URL: ${apiHost}/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/get-prometheus-exporter-metrics`,
   );
-  const apiClient = new FabricApi({ basePath: apiHost });
+
+  const apiConfig = new Configuration({ basePath: apiHost });
+  const apiClient = new FabricApi(apiConfig);
 
   await plugin.getOrCreateWebServices();
   await plugin.registerWebServices(expressApp);
@@ -149,7 +152,7 @@ test(testCase, async (t: Test) => {
       signingCredential,
       channelName: "mychannel",
       contractName: "fabcar",
-      invocationType: FabricContractInvocationType.CALL,
+      invocationType: FabricContractInvocationType.Call,
       methodName: "queryAllCars",
       params: [],
     } as RunTransactionRequest);
@@ -163,7 +166,7 @@ test(testCase, async (t: Test) => {
     const req: RunTransactionRequest = {
       signingCredential,
       channelName: "mychannel",
-      invocationType: FabricContractInvocationType.SEND,
+      invocationType: FabricContractInvocationType.Send,
       contractName: "fabcar",
       methodName: "createCar",
       params: [carId, "Trabant", "601", "Blue", carOwner],
@@ -179,7 +182,7 @@ test(testCase, async (t: Test) => {
       signingCredential,
       channelName: "mychannel",
       contractName: "fabcar",
-      invocationType: FabricContractInvocationType.CALL,
+      invocationType: FabricContractInvocationType.Call,
       methodName: "queryAllCars",
       params: [],
     } as RunTransactionRequest);

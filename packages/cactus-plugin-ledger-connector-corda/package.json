@@ -12,8 +12,8 @@
     "dist/*"
   ],
   "scripts": {
-    "generate-sdk": "openapi-generator generate --input-spec src/main/json/openapi.json -g typescript-axios -o ./src/main/typescript/generated/openapi/typescript-axios/",
-    "generate-server": "openapi-generator generate --input-spec src/main/json/openapi.json -g kotlin-spring -o ./src/main-server/kotlin/gen/kotlin-spring/ -c ./src/main-server/openapi-generator-config.yaml",
+    "generate-sdk": "openapi-generator-cli generate --input-spec src/main/json/openapi.json -g typescript-axios -o ./src/main/typescript/generated/openapi/typescript-axios/",
+    "generate-server": "openapi-generator-cli generate --input-spec src/main/json/openapi.json -g kotlin-spring -o ./src/main-server/kotlin/gen/kotlin-spring/ -c ./src/main-server/openapi-generator-config.yaml",
     "pretsc": "npm-run-all generate-sdk generate-server",
     "tsc": "tsc --project ./tsconfig.json",
     "watch": "npm-watch",

@@ -126,7 +126,7 @@ export class PluginLedgerConnectorStub
   public async getConsensusAlgorithmFamily(): Promise<
     ConsensusAlgorithmFamily
   > {
-    return ConsensusAlgorithmFamily.AUTHORITY;
+    return ConsensusAlgorithmFamily.Authority;
   }
 
   public async transact(req: unknown): Promise<unknown> {

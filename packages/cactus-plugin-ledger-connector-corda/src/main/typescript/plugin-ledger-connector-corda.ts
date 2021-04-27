@@ -63,7 +63,7 @@ export class PluginLedgerConnectorCorda
   public async getConsensusAlgorithmFamily(): Promise<
     ConsensusAlgorithmFamily
   > {
-    return ConsensusAlgorithmFamily.AUTHORITY;
+    return ConsensusAlgorithmFamily.Authority;
   }
 
   public getAspect(): PluginAspect {

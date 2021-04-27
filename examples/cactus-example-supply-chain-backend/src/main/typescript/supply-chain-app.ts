@@ -7,6 +7,7 @@ import exitHook, { IAsyncExitHookDoneCallback } from "async-exit-hook";
 
 import {
   CactusNode,
+  Configuration,
   Consortium,
   ConsortiumDatabase,
   ConsortiumMember,
@@ -121,9 +122,13 @@ export class SupplyChainApp {
     const addressInfoC = httpApiC.address() as AddressInfo;
     const nodeApiHostC = `http://localhost:${addressInfoC.port}`;
 
-    const besuApiClient = new BesuApi({ basePath: nodeApiHostA });
-    const quorumApiClient = new QuorumApi({ basePath: nodeApiHostB });
-    const fabricApiClient = new FabricApi({ basePath: nodeApiHostC });
+    const besuConfig = new Configuration({ basePath: nodeApiHostA });
+    const quorumConfig = new Configuration({ basePath: nodeApiHostB });
+    const fabricConfig = new Configuration({ basePath: nodeApiHostC });
+
+    const besuApiClient = new BesuApi(besuConfig);
+    const quorumApiClient = new QuorumApi(quorumConfig);
+    const fabricApiClient = new FabricApi(fabricConfig);
 
     const keyPairA = await JWK.generate("EC", "secp256k1");
     const keyPairPemA = keyPairA.toPEM(true);
@@ -170,7 +175,7 @@ export class SupplyChainApp {
           web3SigningCredential: {
             keychainEntryKey: besuAccount.address,
             keychainId: keychainIdA,
-            type: Web3SigningCredentialType.CACTUSKEYCHAINREF,
+            type: Web3SigningCredentialType.CactusKeychainRef,
           },
         }),
         new PluginKeychainMemory({
@@ -212,7 +217,7 @@ export class SupplyChainApp {
           web3SigningCredential: {
             keychainEntryKey: quorumAccount.address,
             keychainId: keychainIdB,
-            type: Web3SigningCredentialType.CACTUSKEYCHAINREF,
+            type: Web3SigningCredentialType.CactusKeychainRef,
           },
         }),
         new PluginKeychainMemory({
@@ -277,7 +282,7 @@ export class SupplyChainApp {
       pluginRegistry: registryC,
       discoveryOptions,
       eventHandlerOptions: {
-        strategy: DefaultEventHandlerStrategy.NETWORKSCOPEALLFORTX,
+        strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
         commitTimeout: 300,
       },
     });
@@ -331,7 +336,7 @@ export class SupplyChainApp {
 
     const ledger1 = {
       id: "BesuDemoLedger",
-      ledgerType: LedgerType.BESU1X,
+      ledgerType: LedgerType.Besu1X,
     };
     cactusNodeA.ledgerIds.push(ledger1.id);
 
@@ -358,7 +363,7 @@ export class SupplyChainApp {
 
     const ledger2: Ledger = {
       id: "QuorumDemoLedger",
-      ledgerType: LedgerType.QUORUM2X,
+      ledgerType: LedgerType.Quorum2X,
     };
 
     cactusNodeB.ledgerIds.push(ledger2.id);
@@ -386,7 +391,7 @@ export class SupplyChainApp {
 
     const ledger3: Ledger = {
       id: "FabricDemoLedger",
-      ledgerType: LedgerType.FABRIC14X,
+      ledgerType: LedgerType.Fabric14X,
     };
 
     cactusNodeC.ledgerIds.push(ledger3.id);

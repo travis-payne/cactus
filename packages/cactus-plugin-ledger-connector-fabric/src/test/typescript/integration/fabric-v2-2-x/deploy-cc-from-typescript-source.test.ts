@@ -36,6 +36,7 @@ import { IPluginLedgerConnectorFabricOptions } from "../../../../main/typescript
 
 import { DiscoveryOptions } from "fabric-network";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
+import { Configuration } from "@hyperledger/cactus-core-api";
 
 const testCase = "deploys Fabrix 2.x contract from typescript source";
 const logLevel: LogLevelDesc = "TRACE";
@@ -147,7 +148,7 @@ test(testCase, async (t: Test) => {
     connectionProfile,
     discoveryOptions,
     eventHandlerOptions: {
-      strategy: DefaultEventHandlerStrategy.NETWORKSCOPEALLFORTX,
+      strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
       commitTimeout: 300,
     },
   };
@@ -169,7 +170,9 @@ test(testCase, async (t: Test) => {
   await plugin.registerWebServices(expressApp);
   const apiUrl = `http://localhost:${port}`;
 
-  const apiClient = new FabricApi({ basePath: apiUrl });
+  const config = new Configuration({ basePath: apiUrl });
+
+  const apiClient = new FabricApi(config);
 
   const contractName = "basic-asset-transfer-2";
 
@@ -321,7 +324,7 @@ test(testCase, async (t: Test) => {
     channelName,
     params: [assetId, "Green", "19", assetOwner, "9999"],
     methodName: "CreateAsset",
-    invocationType: FabricContractInvocationType.SEND,
+    invocationType: FabricContractInvocationType.Send,
     signingCredential: {
       keychainId,
       keychainRef: keychainEntryKey,
@@ -337,7 +340,7 @@ test(testCase, async (t: Test) => {
     channelName,
     params: [assetId],
     methodName: "ReadAsset",
-    invocationType: FabricContractInvocationType.CALL,
+    invocationType: FabricContractInvocationType.Call,
     signingCredential: {
       keychainId,
       keychainRef: keychainEntryKey,

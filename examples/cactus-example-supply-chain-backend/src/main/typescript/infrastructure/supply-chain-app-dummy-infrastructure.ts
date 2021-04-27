@@ -180,7 +180,7 @@ export class SupplyChainAppDummyInfrastructure {
           web3SigningCredential: {
             ethAccount: this.quorumAccount.address,
             secret: this.quorumAccount.privateKey,
-            type: Web3SigningCredentialType.PRIVATEKEYHEX,
+            type: Web3SigningCredentialType.PrivateKeyHex,
           },
           keychainId: keychainPlugin.getKeychainId(),
         });
@@ -219,7 +219,7 @@ export class SupplyChainAppDummyInfrastructure {
           web3SigningCredential: {
             ethAccount: this.besuAccount.address,
             secret: this.besuAccount.privateKey,
-            type: Web3SigningCredentialType.PRIVATEKEYHEX,
+            type: Web3SigningCredentialType.PrivateKeyHex,
           },
           keychainId: keychainPlugin.getKeychainId(),
         });
@@ -257,7 +257,7 @@ export class SupplyChainAppDummyInfrastructure {
           cliContainerEnv: org1Env,
           discoveryOptions: discoveryOptions,
           eventHandlerOptions: {
-            strategy: DefaultEventHandlerStrategy.NETWORKSCOPEALLFORTX,
+            strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
           },
         });
 
