@@ -338,7 +338,9 @@ test("Tests are passing on the JVM side", async (t: Test) => {
   t.comment(
     `Metrics URL: ${apiHost}/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-corda/get-prometheus-exporter-metrics`,
   );
-  const apiClient1 = new CordaApi({ basePath: apiHost });
+
+  const apiConfig = new Configuration({ basePath: apiHost });
+  const apiClient1 = new CordaApi(apiConfig);
 
   await plugin.getOrCreateWebServices();
   await plugin.registerWebServices(expressApp);
