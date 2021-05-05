@@ -17,9 +17,9 @@ interface ApiPluginLedgerConnectorCordaService {
 
     fun diagnoseNodeV1(diagnoseNodeV1Request: DiagnoseNodeV1Request?): DiagnoseNodeV1Response
 
+    fun getPrometheusExporterMetricsV1(): kotlin.String
+
     fun invokeContractV1(invokeContractV1Request: InvokeContractV1Request?): InvokeContractV1Response
-  
-	  fun getPrometheusExporterMetricsV1(): kotlin.String
 
     fun listFlowsV1(listFlowsV1Request: ListFlowsV1Request?): ListFlowsV1Response
 

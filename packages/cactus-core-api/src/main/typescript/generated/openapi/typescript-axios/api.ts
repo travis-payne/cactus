@@ -141,8 +141,8 @@ export enum ConsensusAlgorithmFamiliesWithOutTxFinality {
  * @enum {string}
  */
 export enum ConsensusAlgorithmFamiliesWithTxFinality {
-    AUTHORITY = 'org.hyperledger.cactus.consensusalgorithm.PROOF_OF_AUTHORITY',
-    STAKE = 'org.hyperledger.cactus.consensusalgorithm.PROOF_OF_STAKE'
+    Authority = 'org.hyperledger.cactus.consensusalgorithm.PROOF_OF_AUTHORITY',
+    Stake = 'org.hyperledger.cactus.consensusalgorithm.PROOF_OF_STAKE'
 }
 
 /**
