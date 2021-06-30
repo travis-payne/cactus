@@ -178,9 +178,9 @@ test(testCase, async (t: Test) => {
   t.ok(gateway, "gateway connected successfully OK");
 
   const transactionProposal = {
-    fcn: "queryAllCars",
+    fcn: "GetAllAssets",
     args: [],
-    chaincodeId: "fabcar",
+    chaincodeId: "basic",
     channelId: "mychannel",
   };
 
