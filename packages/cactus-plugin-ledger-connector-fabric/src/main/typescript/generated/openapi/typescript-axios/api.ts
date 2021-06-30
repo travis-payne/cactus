@@ -518,24 +518,59 @@ export enum FabricContractInvocationType {
 }
 
 /**
+ * @type FabricSigningCredential
+ * @export
+ */
+export type FabricSigningCredential = FabricSigningCredentialCactusKeychainRef | FabricSigningCredentialNone;
+
+/**
  * 
  * @export
- * @interface FabricSigningCredential
+ * @interface FabricSigningCredentialCactusKeychainRef
  */
-export interface FabricSigningCredential {
+export interface FabricSigningCredentialCactusKeychainRef {
     /**
      * 
      * @type {string}
-     * @memberof FabricSigningCredential
+     * @memberof FabricSigningCredentialCactusKeychainRef
      */
     keychainId: string;
     /**
      * 
      * @type {string}
-     * @memberof FabricSigningCredential
+     * @memberof FabricSigningCredentialCactusKeychainRef
      */
     keychainRef: string;
+    /**
+     * 
+     * @type {FabricSigningCredentialType}
+     * @memberof FabricSigningCredentialCactusKeychainRef
+     */
+    type: FabricSigningCredentialType;
 }
+/**
+ * Using this denotes that there is no signing required because the transaction is pre-signed.
+ * @export
+ * @interface FabricSigningCredentialNone
+ */
+export interface FabricSigningCredentialNone {
+    /**
+     * 
+     * @type {FabricSigningCredentialType}
+     * @memberof FabricSigningCredentialNone
+     */
+    type: FabricSigningCredentialType;
+}
+/**
+ * 
+ * @export
+ * @enum {string}
+ */
+export enum FabricSigningCredentialType {
+    CactusKeychainRef = 'CACTUS_KEYCHAIN_REF',
+    None = 'NONE'
+}
+
 /**
  * Represents a file-system file that has a name and a body which holds the file contents as a Base64 encoded string
  * @export

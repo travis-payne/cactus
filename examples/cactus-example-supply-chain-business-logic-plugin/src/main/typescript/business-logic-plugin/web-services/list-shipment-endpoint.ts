@@ -17,6 +17,7 @@ import { registerWebServiceEndpoint } from "@hyperledger/cactus-core";
 import {
   DefaultApi as FabricApi,
   FabricContractInvocationType,
+  FabricSigningCredentialType,
   RunTransactionRequest,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 
@@ -98,6 +99,7 @@ export class ListShipmentEndpoint implements IWebServiceEndpoint {
         signingCredential: {
           keychainId: this.keychainId,
           keychainRef: "user2",
+          type: FabricSigningCredentialType.CactusKeychainRef,
         },
         channelName: "mychannel",
         contractName: "shipment",

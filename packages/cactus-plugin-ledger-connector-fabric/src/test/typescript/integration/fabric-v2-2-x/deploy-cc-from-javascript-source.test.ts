@@ -27,6 +27,7 @@ import {
   ChainCodeProgrammingLanguage,
   DefaultEventHandlerStrategy,
   FabricContractInvocationType,
+  FabricSigningCredentialType,
   FileBase64,
   PluginLedgerConnectorFabric,
 } from "../../../../main/typescript/public-api";
@@ -298,6 +299,7 @@ test(testCase, async (t: Test) => {
     signingCredential: {
       keychainId,
       keychainRef: keychainEntryKey,
+      type: FabricSigningCredentialType.CactusKeychainRef,
     },
   });
   t.ok(createRes, "setRes truthy OK");
@@ -314,6 +316,7 @@ test(testCase, async (t: Test) => {
     signingCredential: {
       keychainId,
       keychainRef: keychainEntryKey,
+      type: FabricSigningCredentialType.CactusKeychainRef,
     },
   });
   t.ok(getRes, "getRes truthy OK");

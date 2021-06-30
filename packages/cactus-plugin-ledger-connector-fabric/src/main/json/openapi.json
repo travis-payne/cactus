@@ -34,8 +34,31 @@
             "FabricSigningCredential": {
                 "type": "object",
                 "required": [
+                    "type"
+                ],
+                "discriminator": {
+                    "propertyName": "type"
+                },
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/FabricSigningCredentialCactusKeychainRef"
+                    },
+                    {
+                        "$ref": "#/components/schemas/FabricSigningCredentialNone"
+                    }
+                ],
+                "properties": {
+                    "type": {
+                        "$ref": "#/components/schemas/FabricSigningCredentialType"
+                    }
+                }
+            },
+            "FabricSigningCredentialCactusKeychainRef": {
+                "type": "object",
+                "required": [
                     "keychainId",
-                    "keychainRef"
+                    "keychainRef",
+                    "type"
                 ],
                 "properties": {
                     "keychainId": {
@@ -49,8 +72,30 @@
                         "minLength": 1,
                         "maxLength": 100,
                         "nullable": false
+                    },
+                        "type": {
+                            "$ref": "#/components/schemas/FabricSigningCredentialType"
+                        }
+                    }
+                },
+            "FabricSigningCredentialNone": {
+                "type": "object",
+                "required": [
+                    "type"
+                ],
+                "description": "Using this denotes that there is no signing required because the transaction is pre-signed.",
+                "properties": {
+                    "type": {
+                        "$ref": "#/components/schemas/FabricSigningCredentialType"
                     }
                 }
+            },
+            "FabricSigningCredentialType": {
+                "type": "string",
+                "enum": [
+                    "CACTUS_KEYCHAIN_REF",
+                    "NONE"
+                ]
             },
             "ChainCodeLifeCycleCommandResponses": {
                 "type": "object",

@@ -23,6 +23,7 @@ import { PluginRegistry } from "@hyperledger/cactus-core";
 import {
   DefaultEventHandlerStrategy,
   FabricContractInvocationType,
+  FabricSigningCredentialType,
   PluginLedgerConnectorFabric,
   SSHExecCommandResponse,
 } from "../../../../main/typescript/public-api";
@@ -232,6 +233,7 @@ test(testCase, async (t: Test) => {
   const signingCredential: FabricSigningCredential = {
     keychainId,
     keychainRef: keychainEntryKey,
+    type: FabricSigningCredentialType.CactusKeychainRef,
   };
 
   const setRes = await apiClient.runTransactionV1({

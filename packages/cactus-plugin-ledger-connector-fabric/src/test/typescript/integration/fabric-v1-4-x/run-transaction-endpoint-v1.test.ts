@@ -29,6 +29,7 @@ import {
   FabricContractInvocationType,
   DefaultEventHandlerStrategy,
   FabricSigningCredential,
+  FabricSigningCredentialType,
 } from "../../../../main/typescript/public-api";
 
 import { IPluginLedgerConnectorFabricOptions } from "../../../../main/typescript/plugin-ledger-connector-fabric";
@@ -150,6 +151,7 @@ test(testCase, async (t: Test) => {
   const signingCredential: FabricSigningCredential = {
     keychainId,
     keychainRef: keychainEntryKey,
+    type: FabricSigningCredentialType.CactusKeychainRef,
   };
 
   {

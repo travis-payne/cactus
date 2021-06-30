@@ -12,6 +12,7 @@ import {
   SSHExecCommandOptions,
   SSHExecCommandResponse,
 } from "node-ssh";
+
 import {
   DefaultEventHandlerOptions,
   DefaultEventHandlerStrategies,
@@ -21,7 +22,15 @@ import {
   InMemoryWallet,
   X509WalletMixin,
   TransientMap,
+  Network,
 } from "fabric-network";
+
+import {
+  // BroadcastResponse,
+  Channel,
+  SignedProposal,
+  ProposalResponseObject,
+} from "fabric-client";
 
 import { Optional } from "typescript-optional";
 
@@ -69,6 +78,8 @@ import {
   RunTransactionResponse,
   ChainCodeProgrammingLanguage,
   ChainCodeLifeCycleCommandResponses,
+  FabricSigningCredentialCactusKeychainRef,
+  FabricSigningCredentialType,
 } from "./generated/openapi/typescript-axios/index";
 
 import {
@@ -803,6 +814,55 @@ export class PluginLedgerConnectorFabric
   ): Promise<RunTransactionResponse> {
     const fnTag = `${this.className}#transact()`;
 
+    switch (req.signingCredential.type) {
+      case FabricSigningCredentialType.CactusKeychainRef: {
+        return this.transactKeychain(req);
+      }
+      case FabricSigningCredentialType.None: {
+        return this.transactSigned(req);
+      }
+      default: {
+        throw new Error(`${fnTag} Invalid singing credential type.`);
+      }
+    }
+  }
+  public async transactSigned(
+    req: RunTransactionRequest,
+  ): Promise<RunTransactionResponse> {
+    console.log(req);
+    return Promise.reject();
+  }
+
+  public async sendSignedProposal(channelName: string): Promise<any> {
+    // const client: Client
+
+    // const testChannel: Channel = new Channel(channelName,);
+
+    const gateway: Gateway = new Gateway();
+    gateway.connect(this.opts.connectionProfile, {
+      wallet: new InMemoryWallet(new X509WalletMixin()),
+      identity: "",
+    });
+
+    const network: Network = await gateway.getNetwork(channelName);
+    const channel: Channel = await network.getChannel();
+
+    const signedProposal: SignedProposal = {
+      targets: [],
+      signedProposal: new Buffer(0),
+    };
+
+    const res: ProposalResponseObject = await channel.sendSignedProposal(
+      signedProposal,
+    );
+
+    return res;
+  }
+
+  public async transactKeychain(
+    req: RunTransactionRequest,
+  ): Promise<RunTransactionResponse> {
+    const fnTag = `${this.className}#transact()`;
     const { connectionProfile, eventHandlerOptions: eho } = this.opts;
     const {
       signingCredential,
@@ -815,27 +875,22 @@ export class PluginLedgerConnectorFabric
       endorsingParties,
     } = req;
 
+    const {
+      keychainId,
+      keychainRef,
+    } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
     const gateway = new Gateway();
     const wallet = new InMemoryWallet(new X509WalletMixin());
-    const keychain = this.opts.pluginRegistry.findOneByKeychainId(
-      signingCredential.keychainId,
-    );
-    this.log.debug(
-      "transact() obtained keychain by ID=%o OK",
-      signingCredential.keychainId,
-    );
+    const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+    this.log.debug("transact() obtained keychain by ID=%o OK", keychainId);
 
-    const fabricX509IdentityJson = await keychain.get<string>(
-      signingCredential.keychainRef,
-    );
-    this.log.debug(
-      "transact() obtained keychain entry Key=%o OK",
-      signingCredential.keychainRef,
-    );
+    const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+    this.log.debug("transact() obtained keychain entry Key=%o OK", keychainRef);
     const identity = JSON.parse(fabricX509IdentityJson);
 
     try {
-      await wallet.import(signingCredential.keychainRef, identity);
+      await wallet.import(keychainRef, identity);
       this.log.debug("transact() imported identity to in-memory wallet OK");
 
       const eventHandlerOptions: DefaultEventHandlerOptions = {
@@ -849,7 +904,7 @@ export class PluginLedgerConnectorFabric
       const gatewayOptions: GatewayOptions = {
         discovery: this.opts.discoveryOptions,
         eventHandlerOptions,
-        identity: signingCredential.keychainRef,
+        identity: keychainRef,
         wallet,
       };
 

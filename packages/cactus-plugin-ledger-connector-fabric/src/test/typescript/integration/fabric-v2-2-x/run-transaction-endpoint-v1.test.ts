@@ -29,6 +29,7 @@ import {
   FabricContractInvocationType,
   DefaultEventHandlerStrategy,
   FabricSigningCredential,
+  FabricSigningCredentialType,
 } from "../../../../main/typescript/public-api";
 
 import { K_CACTUS_FABRIC_TOTAL_TX_COUNT } from "../../../../main/typescript/prometheus-exporter/metrics";
@@ -158,6 +159,7 @@ test(testCase, async (t: Test) => {
   const signingCredential: FabricSigningCredential = {
     keychainId,
     keychainRef: keychainEntryKey,
+    type: FabricSigningCredentialType.CactusKeychainRef,
   };
   {
     const res = await apiClient.runTransactionV1({

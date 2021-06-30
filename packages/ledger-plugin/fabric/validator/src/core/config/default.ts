@@ -15,5 +15,5 @@ export const config = {
     },
     "validatorKeyPath": "../core/validatorKey/keyr9IS4dDf.priv",
     // Log level (trace/debug/info/warn/error/fatal)
-    "logLevel" : "debug"
+    "logLevel" : "trace"
 };

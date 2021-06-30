@@ -17,6 +17,7 @@ import { InsertShipmentRequest } from "../../generated/openapi/typescript-axios/
 import {
   DefaultApi as FabricApi,
   FabricContractInvocationType,
+  FabricSigningCredentialType,
   RunTransactionRequest,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 
@@ -99,6 +100,7 @@ export class InsertShipmentEndpoint implements IWebServiceEndpoint {
         signingCredential: {
           keychainId: this.keychainId,
           keychainRef: "user2",
+          type: FabricSigningCredentialType.CactusKeychainRef,
         },
         channelName: "mychannel",
         contractName: "shipment",
