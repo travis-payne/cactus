@@ -33,7 +33,7 @@ import {
 const elliptic = require("elliptic");
 const { KEYUTIL } = require("jsrsasign");
 
-const SHA2 = require("sha2");
+const { SHA256 } = require("sha2");
 
 /**
  * Use this to debug issues with the fabric node SDK
@@ -175,6 +175,7 @@ test(testCase, async (t: Test) => {
   };
 
   await gateway.connect(connectionProfile as ConnectionProfile, gatewayOptions);
+  t.ok(gateway, "gateway connected successfully OK");
 
   const transactionProposal = {
     fcn: "queryAllCars",
@@ -184,8 +185,10 @@ test(testCase, async (t: Test) => {
   };
 
   const network = await gateway.getNetwork("mychannel");
+  t.ok(network, "network truthy OK");
 
   const channel = await network.getChannel();
+  t.ok(channel, "channel truthy OK");
 
   const proposal = await channel.generateUnsignedProposal(
     transactionProposal,
@@ -196,7 +199,7 @@ test(testCase, async (t: Test) => {
 
   const proposalBytes = (proposal as any).proposal.toBuffer(); // the proposal comes from step 1
 
-  const digest = SHA2.SHA224(proposalBytes); // A hash function by the user's desire
+  const digest = SHA256(proposalBytes); // A hash function by the user's desire
 
   const { prvKeyHex } = KEYUTIL.getKey(userIdentity.privateKey); // convert the pem encoded key to hex encoded private key
 
@@ -229,8 +232,11 @@ test(testCase, async (t: Test) => {
   const proposalResponses = await channel.sendSignedProposal(
     sendSignedProposalReq,
   );
-
-  console.log(proposalResponses);
+  const noErrorResponses = proposalResponses.every(
+    (aProposalResponse) => !(aProposalResponse instanceof Error),
+  );
+  t.comment(JSON.stringify(proposalResponses, null, 2));
+  t.true(noErrorResponses, "noErrorResponses true OK");
 
   //plugin.
 
