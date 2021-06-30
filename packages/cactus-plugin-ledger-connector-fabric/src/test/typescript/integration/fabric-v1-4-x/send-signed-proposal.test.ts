@@ -209,8 +209,22 @@ test(testCase, async (t: Test) => {
   const ecdsa = new EC(ecdsaCurve);
   const signKey = ecdsa.keyFromPrivate(prvKeyHex, "hex");
   const sig = ecdsa.sign(Buffer.from(digest, "hex"), signKey);
+  t.comment(`Malleable sig: ${sig}`);
+  t.ok(sig, "Malleable sig truthy OK");
 
-  const signature = Buffer.from(sig.toDER());
+  const _preventMalleability = (sig: any) => {
+    const halfOrder = elliptic.curves.p256.n.shrn(1);
+    if (sig.s.cmp(halfOrder) === 1) {
+      const bigNum = elliptic.curves.p256.n;
+      sig.s = bigNum.sub(sig.s);
+    }
+    return sig;
+  };
+  const nonMalleableSig = _preventMalleability(sig);
+  t.comment(`Non-malleable sig: ${nonMalleableSig}`);
+  t.ok(sig, "Non-malleable sig truthy OK");
+
+  const signature = Buffer.from(nonMalleableSig.toDER());
   const signedProposal = {
     signature,
     proposal_bytes: proposalBytes,
@@ -235,7 +249,7 @@ test(testCase, async (t: Test) => {
   const noErrorResponses = proposalResponses.every(
     (aProposalResponse) => !(aProposalResponse instanceof Error),
   );
-  t.comment(JSON.stringify(proposalResponses, null, 2));
+  t.comment(JSON.stringify(proposalResponses));
   t.true(noErrorResponses, "noErrorResponses true OK");
 
   //plugin.
