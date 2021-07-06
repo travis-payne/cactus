@@ -17,6 +17,10 @@ import {
 } from "./generated/openapi/typescript-axios/index";
 
 import {
+  GetPastLogsV1Request,
+  GetPastLogsV1Response,
+} from "./generated/openapi/typescript-axios/index";
+import {
   ConsensusAlgorithmFamily,
   IPluginLedgerConnector,
   IWebServiceEndpoint,
@@ -60,6 +64,8 @@ import {
   Web3SigningCredentialCactusKeychainRef,
   Web3SigningCredentialPrivateKeyHex,
   Web3SigningCredentialType,
+  GetTransactionV1Request,
+  GetTransactionV1Response,
 } from "./generated/openapi/typescript-axios/";
 
 import { RunTransactionEndpoint } from "./web-services/run-transaction-endpoint";
@@ -72,6 +78,8 @@ import {
   IGetPrometheusExporterMetricsEndpointV1Options,
 } from "./web-services/get-prometheus-exporter-metrics-endpoint-v1";
 import { WatchBlocksV1Endpoint } from "./web-services/watch-blocks-v1-endpoint";
+import { GetBalanceEndpoint } from "./web-services/get-balance-endpoint";
+import { GetTransactionEndpoint } from "./web-services/get-transaction-endpoint";
 
 export const E_KEYCHAIN_NOT_FOUND = "cactus.connector.besu.keychain_not_found";
 
@@ -155,6 +163,10 @@ export class PluginLedgerConnectorBesu
     return this.instanceId;
   }
 
+  public async onPluginInit(): Promise<unknown> {
+    return;
+  }
+
   public getHttpServer(): Optional<Server | SecureServer> {
     return Optional.ofNullable(this.httpServer);
   }
@@ -194,6 +206,20 @@ export class PluginLedgerConnectorBesu
     const endpoints: IWebServiceEndpoint[] = [];
     {
       const endpoint = new DeployContractSolidityBytecodeEndpoint({
+        connector: this,
+        logLevel: this.options.logLevel,
+      });
+      endpoints.push(endpoint);
+    }
+    {
+      const endpoint = new GetBalanceEndpoint({
+        connector: this,
+        logLevel: this.options.logLevel,
+      });
+      endpoints.push(endpoint);
+    }
+    {
+      const endpoint = new GetTransactionEndpoint({
         connector: this,
         logLevel: this.options.logLevel,
       });
@@ -706,5 +732,21 @@ export class PluginLedgerConnectorBesu
       request.defaultBlock,
     );
     return { balance };
+  }
+
+  public async getTransaction(
+    request: GetTransactionV1Request,
+  ): Promise<GetTransactionV1Response> {
+    const transaction = await this.web3.eth.getTransaction(
+      request.transactionHash,
+    );
+    return { transaction };
+  }
+
+  public async getPastLogs(
+    request: GetPastLogsV1Request,
+  ): Promise<GetPastLogsV1Response> {
+    const logs = await this.web3.eth.getPastLogs(request);
+    return { logs };
   }
 }

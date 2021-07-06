@@ -209,6 +209,10 @@ export class PluginLedgerConnectorFabric
     return Optional.empty();
   }
 
+  public async onPluginInit(): Promise<unknown> {
+    return;
+  }
+
   public async getConsensusAlgorithmFamily(): Promise<
     ConsensusAlgorithmFamily
   > {
