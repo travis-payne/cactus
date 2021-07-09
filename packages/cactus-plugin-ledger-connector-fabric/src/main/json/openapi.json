@@ -386,6 +386,88 @@
                     }
                 }
             },
+            "SendSignedProposalRequest": {
+                "type": "object",
+                "required": [
+                    "channelName",
+                    "data"
+                ],
+                "properties": {
+                    "channelName": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "nullable": false
+                    },
+                    "data": {
+                        "type": "object"
+                    },
+                    "serviceUserIdentity": {
+                        "type": "string"
+                    },
+                    "signingCredential": {
+                        "$ref": "#/components/schemas/FabricSigningCredential",
+                        "nullable": false
+                    }
+                }
+            },
+            "SendSignedTransactionRequest": {
+                "type": "object",
+                "required": [
+                    "channelName",
+                    "data"
+                ],
+                "properties": {
+                    "channelName": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "nullable": false
+                    },
+                    "data": {
+                        "type": "object"
+                    },
+                    "serviceUserIdentity": {
+                        "type": "string"
+                    },
+                    "signingCredential": {
+                        "$ref": "#/components/schemas/FabricSigningCredential",
+                        "nullable": false
+                    }
+                }
+            },
+            "SendSignedTransactionResponse": {
+                "type": "object",
+                "required": [
+                    "status"
+                ],
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "nullable": false
+                    },
+                    "info": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                }
+            },
+            "SendSignedProposalResponse": {
+                "type": "object",
+                "required": [
+                    "status"
+                ],
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "nullable": false
+                    },
+                    "info": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                }
+            },
             "RunTransactionResponse": {
                 "type": "object",
                 "required": [
@@ -828,6 +910,45 @@
                         "application/json": {
                             "schema": {
                                 "$ref": "#/components/schemas/RunTransactionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RunTransactionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-proposal": {
+            "post": {
+                "x-hyperledger-cactus": {
+                    "http": {
+                        "verbLowerCase": "post",
+                        "path": "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-proposal"
+                    }
+                },
+                "operationId": "sendSignedProposalV1",
+                "summary": "Sends a pre-signed proposal to the Fabric ledger.",
+                "description": "",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SendSignedProposalRequest"
                             }
                         }
                     }

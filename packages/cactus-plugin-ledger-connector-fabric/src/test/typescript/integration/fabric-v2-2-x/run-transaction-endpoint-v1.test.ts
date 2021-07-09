@@ -84,9 +84,11 @@ test(testCase, async (t: Test) => {
 
   await ledger.start();
 
+  const keychainEntryKey = "user2";
+
   const enrollAdminOut = await ledger.enrollAdmin();
   const adminWallet = enrollAdminOut[1];
-  const [userIdentity] = await ledger.enrollUser(adminWallet);
+  const [userIdentity] = await ledger.enrollUser(adminWallet, keychainEntryKey);
 
   const connectionProfile = await ledger.getConnectionProfileOrg1();
 
@@ -94,7 +96,6 @@ test(testCase, async (t: Test) => {
 
   const keychainInstanceId = uuidv4();
   const keychainId = uuidv4();
-  const keychainEntryKey = "user2";
   const keychainEntryValue = JSON.stringify(userIdentity);
 
   const keychainPlugin = new PluginKeychainMemory({

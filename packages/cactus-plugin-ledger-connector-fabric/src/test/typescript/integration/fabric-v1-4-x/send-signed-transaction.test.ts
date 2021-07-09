@@ -18,9 +18,9 @@ import {
   FabricSigningCredential,
   FabricSigningCredentialType,
   ConnectionProfile,
+  SendSignedProposalRequest,
   IPluginLedgerConnectorFabricOptions,
   PluginLedgerConnectorFabric,
-  SendSignedProposalRequest,
 } from "../../../../main/typescript/public-api";
 
 import {
@@ -33,7 +33,7 @@ import {
   X509WalletMixin,
 } from "fabric-network";
 
-import { ProposalResponseObject } from "fabric-client";
+import { ProposalResponseObject, ProposalResponse } from "fabric-client";
 
 const testCase = "runs tx on a Fabric v1.4.8 ledger";
 const logLevel: LogLevelDesc = "TRACE";
@@ -187,51 +187,60 @@ test(testCase, async (t: Test) => {
     proposal_bytes: proposalBytes,
   };
 
-  {
-    // Sending request without keychain service user
+  const req: SendSignedProposalRequest = {
+    channelName,
+    data: signedProposal,
+    serviceUserIdentity: serviceUserIdentity,
+  };
 
-    const req: SendSignedProposalRequest = {
-      channelName,
-      data: signedProposal,
-      serviceUserIdentity: serviceUserIdentity,
-    };
+  const proposalResponses: ProposalResponseObject = await plugin.sendSignedProposal(
+    req,
+  );
 
-    const proposalResponses: ProposalResponseObject = await plugin.sendSignedProposal(
-      req,
-    );
+  const noErrorResponses = proposalResponses.every(
+    (aProposalResponse) => !(aProposalResponse instanceof Error),
+  );
 
-    const noErrorResponses = proposalResponses.every(
-      (aProposalResponse) => !(aProposalResponse instanceof Error),
-    );
+  t.comment(JSON.stringify(proposalResponses));
+  t.true(noErrorResponses, "noErrorResponses true OK");
 
-    t.comment(JSON.stringify(proposalResponses));
-    t.true(noErrorResponses, "noErrorResponses true OK");
-  }
+  // Generate Signed Transaction
+  const commitReq = {
+    proposalResponses: (proposalResponses as unknown) as ProposalResponse[],
+    proposal: (proposal as any).proposal,
+  };
 
-  {
-    // Sending request with keychain service user
-    const req: SendSignedProposalRequest = {
-      channelName,
-      data: signedProposal,
-      signingCredential: {
-        keychainId,
-        keychainRef: serviceUserId,
-        type: FabricSigningCredentialType.None,
-      },
-    };
+  const commitProposal = await channel.generateUnsignedTransaction(commitReq);
 
-    const proposalResponses: ProposalResponseObject = await plugin.sendSignedProposal(
-      req,
-    );
+  const data: ByteBuffer = commitProposal.data;
 
-    const noErrorResponses = proposalResponses.every(
-      (aProposalResponse) => !(aProposalResponse instanceof Error),
-    );
+  const signedCommitProposal = Utils.hashAndSignProposal(
+    data.toBuffer(),
+    signingUser.privateKey,
+  );
+  const malleableSig = Utils.preventMalleability(signedCommitProposal);
 
-    t.comment(JSON.stringify(proposalResponses));
-    t.true(noErrorResponses, "noErrorResponses true OK");
-  }
+  const signedTransaction = {
+    signedTransaction: malleableSig,
+    request: commitReq,
+    signedProposal: signedProposal as any,
+  } as any;
 
+  const signedTransactionRequest: SendSignedProposalRequest = {
+    channelName,
+    data: signedTransaction,
+    signingCredential: {
+      keychainId,
+      keychainRef: serviceUserId,
+      type: FabricSigningCredentialType.None,
+    },
+  };
+
+  const responses = await plugin.sendSignedTransaction(
+    signedTransactionRequest,
+  );
+
+  t.ok(responses, "sendSignedTransaction response OK");
   t.end();
 });
 

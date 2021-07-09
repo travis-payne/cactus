@@ -146,11 +146,13 @@ export class FabricTestLedgerV1 implements ITestLedger {
     }
   }
 
-  public async enrollUser(wallet: InMemoryWallet): Promise<any> {
+  public async enrollUser(
+    wallet: InMemoryWallet,
+    userId: string,
+  ): Promise<any> {
     const fnTag = `${this.className}#enrollUser()`;
     try {
       const mspId = this.getDefaultMspId();
-      const enrollmentID = "user2";
       const connectionProfile = await this.getConnectionProfileOrg1();
       // Create a new gateway for connecting to our peer node.
       const gateway = new Gateway();
@@ -170,23 +172,26 @@ export class FabricTestLedgerV1 implements ITestLedger {
       // Register the user, enroll the user, and import the new identity into the wallet.
       const registrationRequest = {
         affiliation: "org1.department1",
-        enrollmentID,
+        enrollmentID: userId,
         role: "client",
       };
       const secret = await ca.register(registrationRequest, adminIdentity);
-      this.log.debug(`Registered client user "${enrollmentID}" OK`);
+      this.log.debug(`Registered client user "${userId}" OK`);
 
-      const enrollmentRequest = { enrollmentID, enrollmentSecret: secret };
+      const enrollmentRequest = {
+        enrollmentID: userId,
+        enrollmentSecret: secret,
+      };
       const enrollment = await ca.enroll(enrollmentRequest);
-      this.log.debug(`Enrolled client user "${enrollmentID}" OK`);
+      this.log.debug(`Enrolled client user "${userId}" OK`);
 
       const { certificate: cert, key } = enrollment;
       const keyBytes = key.toBytes();
 
       const identity = X509WalletMixin.createIdentity(mspId, cert, keyBytes);
 
-      await wallet.import(enrollmentID, identity);
-      this.log.debug(`Wallet import of "${enrollmentID}" OK`);
+      await wallet.import(userId, identity);
+      this.log.debug(`Wallet import of "${userId}" OK`);
 
       return [identity, wallet];
     } catch (ex) {

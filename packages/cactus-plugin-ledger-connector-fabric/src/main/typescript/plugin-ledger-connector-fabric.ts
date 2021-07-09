@@ -26,10 +26,10 @@ import {
 } from "fabric-network";
 
 import {
-  // BroadcastResponse,
   Channel,
-  SignedProposal,
   ProposalResponseObject,
+  ChannelPeer,
+  Peer,
 } from "fabric-client";
 
 import { Optional } from "typescript-optional";
@@ -58,7 +58,7 @@ import {
 import {
   IRunTransactionEndpointV1Options,
   RunTransactionEndpointV1,
-} from "./run-transaction/run-transaction-endpoint-v1";
+} from "./web-services/run-transaction-endpoint-v1";
 
 import {
   IGetPrometheusExporterMetricsEndpointV1Options,
@@ -80,6 +80,9 @@ import {
   ChainCodeLifeCycleCommandResponses,
   FabricSigningCredentialCactusKeychainRef,
   FabricSigningCredentialType,
+  SendSignedProposalRequest,
+  SendSignedTransactionRequest,
+  SendSignedTransactionResponse,
 } from "./generated/openapi/typescript-axios/index";
 
 import {
@@ -96,6 +99,14 @@ import {
 } from "./deploy-contract/deploy-contract-endpoint-v1";
 import { sourceLangToRuntimeLang } from "./peer/source-lang-to-runtime-lang";
 import FabricCAServices from "fabric-ca-client";
+import {
+  ISendSignedProposalEndpointV1Options,
+  SendSignedProposalEndpointV1,
+} from "./web-services/send-signed-proposal-endpoint-v1";
+import {
+  ISendSignedTransactionEndpointV1Options,
+  SendSignedTransactionEndpointV1,
+} from "./web-services/send-signed-transaction-endpoint-v1";
 
 /**
  * Constant value holding the default $GOPATH in the Fabric CLI container as
@@ -142,6 +153,9 @@ export class PluginLedgerConnectorFabric
   private readonly dockerBinary: string;
   private readonly peerBinary: string;
   private readonly goBinary: string;
+  private readonly serviceUserId: string = "serviceUser";
+  private readonly serviceUserPw: string = "serviceUserPw";
+  private serviceIdentity: Identity | undefined;
   private readonly cliContainerGoPath: string;
   public prometheusExporter: PrometheusExporter;
   private endpoints: IWebServiceEndpoint[] | undefined;
@@ -799,6 +813,24 @@ export class PluginLedgerConnectorFabric
     }
 
     {
+      const opts: ISendSignedProposalEndpointV1Options = {
+        connector: this,
+        logLevel: this.opts.logLevel,
+      };
+      const endpoint = new SendSignedProposalEndpointV1(opts);
+      endpoints.push(endpoint);
+    }
+
+    {
+      const opts: ISendSignedTransactionEndpointV1Options = {
+        connector: this,
+        logLevel: this.opts.logLevel,
+      };
+      const endpoint = new SendSignedTransactionEndpointV1(opts);
+      endpoints.push(endpoint);
+    }
+
+    {
       const opts: IGetPrometheusExporterMetricsEndpointV1Options = {
         connector: this,
         logLevel: this.opts.logLevel,
@@ -822,45 +854,143 @@ export class PluginLedgerConnectorFabric
       case FabricSigningCredentialType.CactusKeychainRef: {
         return this.transactKeychain(req);
       }
-      case FabricSigningCredentialType.None: {
-        return this.transactSigned(req);
-      }
       default: {
         throw new Error(`${fnTag} Invalid singing credential type.`);
       }
     }
   }
-  public async transactSigned(
-    req: RunTransactionRequest,
-  ): Promise<RunTransactionResponse> {
-    console.log(req);
-    return Promise.reject();
-  }
 
-  public async sendSignedProposal(channelName: string): Promise<any> {
-    // const client: Client
+  public async sendSignedTransaction(
+    req: SendSignedTransactionRequest,
+  ): Promise<SendSignedTransactionResponse> {
+    const fnTag = `${this.className}#sendSignedTransaction()`;
+    const { connectionProfile } = this.opts;
+    const { data, channelName, signingCredential, serviceUserIdentity } = req;
+    const gateway = new Gateway();
 
-    // const testChannel: Channel = new Channel(channelName,);
+    // If no method of specifying service user credentials, throw error.
+    if (!serviceUserIdentity && !signingCredential) {
+      throw new Error(
+        `${fnTag} Unable to submit transaction, please provide service account details.`,
+      );
+    }
 
-    const gateway: Gateway = new Gateway();
-    gateway.connect(this.opts.connectionProfile, {
-      wallet: new InMemoryWallet(new X509WalletMixin()),
-      identity: "",
-    });
+    const wallet = new InMemoryWallet(new X509WalletMixin());
+
+    // Check if service ID exists, if not, use keychain service user.
+    if (serviceUserIdentity) {
+      const identity = JSON.parse(serviceUserIdentity);
+      await wallet.import("service", identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: "service",
+      });
+    } else {
+      const {
+        keychainId,
+        keychainRef,
+      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
+      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+      const identity = JSON.parse(fabricX509IdentityJson);
+      await wallet.import(keychainRef, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: keychainRef,
+      });
+    }
 
     const network: Network = await gateway.getNetwork(channelName);
     const channel: Channel = await network.getChannel();
 
-    const signedProposal: SignedProposal = {
-      targets: [],
-      signedProposal: new Buffer(0),
-    };
-
-    const res: ProposalResponseObject = await channel.sendSignedProposal(
-      signedProposal,
+    const sendTransactionResponse: SendSignedTransactionResponse = await channel.sendSignedTransaction(
+      data as any,
     );
 
-    return res;
+    if (sendTransactionResponse.status != "SUCCESS") {
+      throw new Error(
+        `${fnTag} Unable to submit transaction: ${sendTransactionResponse}`,
+      );
+    }
+
+    return sendTransactionResponse;
+  }
+
+  public async sendSignedProposal(
+    req: SendSignedProposalRequest,
+  ): Promise<ProposalResponseObject> {
+    const fnTag = `${this.className}#sendSignedProposal()`;
+    const { connectionProfile } = this.opts;
+    const { data, channelName, signingCredential, serviceUserIdentity } = req;
+    const gateway = new Gateway();
+
+    // If no method of specifying service user credentials, throw error.
+    if (!serviceUserIdentity && !signingCredential) {
+      throw new Error(
+        `${fnTag} Unable to submit proposal, please provide service account details.`,
+      );
+    }
+
+    const wallet = new InMemoryWallet(new X509WalletMixin());
+
+    // Check if service ID exists, if not, use keychain service user.
+    if (serviceUserIdentity) {
+      const identity = JSON.parse(serviceUserIdentity);
+      await wallet.import("service", identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: "service",
+      });
+    } else {
+      const {
+        keychainId,
+        keychainRef,
+      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
+      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+      const identity = JSON.parse(fabricX509IdentityJson);
+      await wallet.import(keychainRef, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: keychainRef,
+      });
+    }
+
+    const network: Network = await gateway.getNetwork(channelName);
+    const channel: Channel = await network.getChannel();
+    const channelPeers: ChannelPeer[] = await channel.getChannelPeers();
+
+    const targets: Peer[] = [];
+
+    // channelPeers.forEach((peer) => {
+    //   targets.push(peer.getPeer());
+    // })
+
+    //The first peer is the only peer that currently doesn't throw DNS resolution error.
+    targets.push(channelPeers[0].getPeer());
+
+    const signedProposal = {
+      targets,
+      signedProposal: data,
+    };
+
+    const proposalResponses: ProposalResponseObject = await channel.sendSignedProposal(
+      signedProposal as any,
+    );
+
+    const noErrorResponses = proposalResponses.every(
+      (aProposalResponse) => !(aProposalResponse instanceof Error),
+    );
+
+    if (!noErrorResponses) {
+      throw new Error(
+        `${fnTag} Unable to submit transaction proposal: ${proposalResponses}`,
+      );
+    }
+
+    return proposalResponses;
   }
 
   public async transactKeychain(

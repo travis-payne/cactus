@@ -77,14 +77,16 @@ test(testCase, async (t: Test) => {
 
   t.ok(connectionProfile, "getConnectionProfileOrg1() out truthy OK");
 
+  const keychainEntryKey = "user1Org1";
+
   const enrollAdminOut = await ledger.enrollAdmin();
   const adminWallet = enrollAdminOut[1];
-  const [userIdentity] = await ledger.enrollUser(adminWallet);
+  const [userIdentity] = await ledger.enrollUser(adminWallet, keychainEntryKey);
   const sshConfig = await ledger.getSshConfig();
 
   const keychainInstanceId = uuidv4();
   const keychainId = uuidv4();
-  const keychainEntryKey = "user1Org1";
+
   const keychainEntryValue = JSON.stringify(userIdentity);
 
   const keychainPlugin = new PluginKeychainMemory({
