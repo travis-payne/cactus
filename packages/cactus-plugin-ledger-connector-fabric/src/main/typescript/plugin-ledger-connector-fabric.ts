@@ -18,19 +18,11 @@ import {
   DefaultEventHandlerStrategies,
   Gateway,
   GatewayOptions,
-  Identity,
-  InMemoryWallet,
-  X509WalletMixin,
+  Wallets,
+  X509Identity,
   TransientMap,
-  Network,
+  Wallet,
 } from "fabric-network";
-
-import {
-  Channel,
-  ProposalResponseObject,
-  ChannelPeer,
-  Peer,
-} from "fabric-client";
 
 import { Optional } from "typescript-optional";
 
@@ -78,11 +70,8 @@ import {
   RunTransactionResponse,
   ChainCodeProgrammingLanguage,
   ChainCodeLifeCycleCommandResponses,
-  FabricSigningCredentialCactusKeychainRef,
-  FabricSigningCredentialType,
-  SendSignedProposalRequest,
-  SendSignedTransactionRequest,
-  SendSignedTransactionResponse,
+  FabricSigningCredential,
+  DefaultEventHandlerStrategy,
 } from "./generated/openapi/typescript-axios/index";
 
 import {
@@ -99,14 +88,7 @@ import {
 } from "./deploy-contract/deploy-contract-endpoint-v1";
 import { sourceLangToRuntimeLang } from "./peer/source-lang-to-runtime-lang";
 import FabricCAServices from "fabric-ca-client";
-import {
-  ISendSignedProposalEndpointV1Options,
-  SendSignedProposalEndpointV1,
-} from "./web-services/send-signed-proposal-endpoint-v1";
-import {
-  ISendSignedTransactionEndpointV1Options,
-  SendSignedTransactionEndpointV1,
-} from "./web-services/send-signed-transaction-endpoint-v1";
+import { createGateway } from "./common/create-gateway";
 
 /**
  * Constant value holding the default $GOPATH in the Fabric CLI container as
@@ -845,161 +827,87 @@ export class PluginLedgerConnectorFabric
     return endpoints;
   }
 
+  protected async createGateway(req: RunTransactionRequest): Promise<Gateway> {
+    if (req.gatewayOptions) {
+      return createGateway({
+        logLevel: this.opts.logLevel,
+        pluginRegistry: this.opts.pluginRegistry,
+        defaultConnectionProfile: this.opts.connectionProfile,
+        defaultDiscoveryOptions: this.opts.discoveryOptions || {
+          enabled: true,
+          asLocalhost: true,
+        },
+        defaultEventHandlerOptions: this.opts.eventHandlerOptions || {
+          endorseTimeout: 300,
+          commitTimeout: 300,
+          strategy: DefaultEventHandlerStrategy.NetworkScopeAllfortx,
+        },
+        gatewayOptions: req.gatewayOptions,
+      });
+    } else {
+      return this.createGatewayLegacy(req.signingCredential);
+    }
+  }
+
+  protected async createGatewayLegacy(
+    signingCredential: FabricSigningCredential,
+  ): Promise<Gateway> {
+    const { connectionProfile, eventHandlerOptions: eho } = this.opts;
+
+    const wallet = await Wallets.newInMemoryWallet();
+
+    const keychain = this.opts.pluginRegistry.findOneByKeychainId(
+      signingCredential.keychainId,
+    );
+    this.log.debug(
+      "transact() obtained keychain by ID=%o OK",
+      signingCredential.keychainId,
+    );
+
+    const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+    this.log.debug("transact() obtained keychain entry Key=%o OK", keychainRef);
+    const identity = JSON.parse(fabricX509IdentityJson);
+
+    await wallet.put(signingCredential.keychainRef, identity);
+    this.log.debug("transact() imported identity to in-memory wallet OK");
+
+    const eventHandlerOptions: DefaultEventHandlerOptions = {
+      commitTimeout: this.opts.eventHandlerOptions?.commitTimeout || 300,
+      endorseTimeout: 300,
+    };
+    if (eho?.strategy) {
+      eventHandlerOptions.strategy =
+        DefaultEventHandlerStrategies[eho.strategy];
+    }
+
+    const gatewayOptions: GatewayOptions = {
+      discovery: this.opts.discoveryOptions,
+      eventHandlerOptions,
+      identity: signingCredential.keychainRef,
+      wallet,
+    };
+
+    this.log.debug(`discovery=%o`, gatewayOptions.discovery);
+    this.log.debug(`eventHandlerOptions=%o`, eventHandlerOptions);
+
+    const gateway = new Gateway();
+
+    await gateway.connect(
+      connectionProfile as ConnectionProfile,
+      gatewayOptions,
+    );
+
+    this.log.debug("transact() gateway connection established OK");
+
+    return gateway;
+  }
+
   public async transact(
     req: RunTransactionRequest,
   ): Promise<RunTransactionResponse> {
     const fnTag = `${this.className}#transact()`;
 
-    switch (req.signingCredential.type) {
-      case FabricSigningCredentialType.CactusKeychainRef: {
-        return this.transactKeychain(req);
-      }
-      default: {
-        throw new Error(`${fnTag} Invalid singing credential type.`);
-      }
-    }
-  }
-
-  public async sendSignedTransaction(
-    req: SendSignedTransactionRequest,
-  ): Promise<SendSignedTransactionResponse> {
-    const fnTag = `${this.className}#sendSignedTransaction()`;
-    const { connectionProfile } = this.opts;
-    const { data, channelName, signingCredential, serviceUserIdentity } = req;
-    const gateway = new Gateway();
-
-    // If no method of specifying service user credentials, throw error.
-    if (!serviceUserIdentity && !signingCredential) {
-      throw new Error(
-        `${fnTag} Unable to submit transaction, please provide service account details.`,
-      );
-    }
-
-    const wallet = new InMemoryWallet(new X509WalletMixin());
-
-    // Check if service ID exists, if not, use keychain service user.
-    if (serviceUserIdentity) {
-      const identity = JSON.parse(serviceUserIdentity);
-      await wallet.import("service", identity);
-      await gateway.connect(connectionProfile as ConnectionProfile, {
-        wallet,
-        identity: "service",
-      });
-    } else {
-      const {
-        keychainId,
-        keychainRef,
-      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
-
-      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
-      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
-      const identity = JSON.parse(fabricX509IdentityJson);
-      await wallet.import(keychainRef, identity);
-      await gateway.connect(connectionProfile as ConnectionProfile, {
-        wallet,
-        identity: keychainRef,
-      });
-    }
-
-    const network: Network = await gateway.getNetwork(channelName);
-    const channel: Channel = await network.getChannel();
-
-    const sendTransactionResponse: SendSignedTransactionResponse = await channel.sendSignedTransaction(
-      data as any,
-    );
-
-    if (sendTransactionResponse.status != "SUCCESS") {
-      throw new Error(
-        `${fnTag} Unable to submit transaction: ${sendTransactionResponse}`,
-      );
-    }
-
-    return sendTransactionResponse;
-  }
-
-  public async sendSignedProposal(
-    req: SendSignedProposalRequest,
-  ): Promise<ProposalResponseObject> {
-    const fnTag = `${this.className}#sendSignedProposal()`;
-    const { connectionProfile } = this.opts;
-    const { data, channelName, signingCredential, serviceUserIdentity } = req;
-    const gateway = new Gateway();
-
-    // If no method of specifying service user credentials, throw error.
-    if (!serviceUserIdentity && !signingCredential) {
-      throw new Error(
-        `${fnTag} Unable to submit proposal, please provide service account details.`,
-      );
-    }
-
-    const wallet = new InMemoryWallet(new X509WalletMixin());
-
-    // Check if service ID exists, if not, use keychain service user.
-    if (serviceUserIdentity) {
-      const identity = JSON.parse(serviceUserIdentity);
-      await wallet.import("service", identity);
-      await gateway.connect(connectionProfile as ConnectionProfile, {
-        wallet,
-        identity: "service",
-      });
-    } else {
-      const {
-        keychainId,
-        keychainRef,
-      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
-
-      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
-      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
-      const identity = JSON.parse(fabricX509IdentityJson);
-      await wallet.import(keychainRef, identity);
-      await gateway.connect(connectionProfile as ConnectionProfile, {
-        wallet,
-        identity: keychainRef,
-      });
-    }
-
-    const network: Network = await gateway.getNetwork(channelName);
-    const channel: Channel = await network.getChannel();
-    const channelPeers: ChannelPeer[] = await channel.getChannelPeers();
-
-    const targets: Peer[] = [];
-
-    // channelPeers.forEach((peer) => {
-    //   targets.push(peer.getPeer());
-    // })
-
-    //The first peer is the only peer that currently doesn't throw DNS resolution error.
-    targets.push(channelPeers[0].getPeer());
-
-    const signedProposal = {
-      targets,
-      signedProposal: data,
-    };
-
-    const proposalResponses: ProposalResponseObject = await channel.sendSignedProposal(
-      signedProposal as any,
-    );
-
-    const noErrorResponses = proposalResponses.every(
-      (aProposalResponse) => !(aProposalResponse instanceof Error),
-    );
-
-    if (!noErrorResponses) {
-      throw new Error(
-        `${fnTag} Unable to submit transaction proposal: ${proposalResponses}`,
-      );
-    }
-
-    return proposalResponses;
-  }
-
-  public async transactKeychain(
-    req: RunTransactionRequest,
-  ): Promise<RunTransactionResponse> {
-    const fnTag = `${this.className}#transact()`;
-    const { connectionProfile, eventHandlerOptions: eho } = this.opts;
     const {
-      signingCredential,
       channelName,
       contractName,
       invocationType,
@@ -1009,48 +917,11 @@ export class PluginLedgerConnectorFabric
       endorsingParties,
     } = req;
 
-    const {
-      keychainId,
-      keychainRef,
-    } = signingCredential as FabricSigningCredentialCactusKeychainRef;
-
-    const gateway = new Gateway();
-    const wallet = new InMemoryWallet(new X509WalletMixin());
-    const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
-    this.log.debug("transact() obtained keychain by ID=%o OK", keychainId);
-
-    const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
-    this.log.debug("transact() obtained keychain entry Key=%o OK", keychainRef);
-    const identity = JSON.parse(fabricX509IdentityJson);
-
     try {
-      await wallet.import(keychainRef, identity);
-      this.log.debug("transact() imported identity to in-memory wallet OK");
-
-      const eventHandlerOptions: DefaultEventHandlerOptions = {
-        commitTimeout: this.opts.eventHandlerOptions?.commitTimeout || 300,
-      };
-      if (eho?.strategy) {
-        eventHandlerOptions.strategy =
-          DefaultEventHandlerStrategies[eho.strategy];
-      }
-
-      const gatewayOptions: GatewayOptions = {
-        discovery: this.opts.discoveryOptions,
-        eventHandlerOptions,
-        identity: keychainRef,
-        wallet,
-      };
-
-      this.log.debug(`discovery=%o`, gatewayOptions.discovery);
-      this.log.debug(`eventHandlerOptions=%o`, eventHandlerOptions);
-      await gateway.connect(
-        connectionProfile as ConnectionProfile,
-        gatewayOptions,
-      );
-      this.log.debug("transact() gateway connection established OK");
-
+      const gateway = await this.createGateway(req);
       const network = await gateway.getNetwork(channelName);
+      // const channel = network.getChannel();
+      // const endorsers = channel.getEndorsers();
       const contract = network.getContract(contractName);
 
       let out: Buffer;
@@ -1152,23 +1023,30 @@ export class PluginLedgerConnectorFabric
     mspId: string,
     enrollmentID: string,
     enrollmentSecret: string,
-  ): Promise<[Identity, InMemoryWallet]> {
+  ): Promise<[X509Identity, Wallet]> {
     const fnTag = `${this.className}#enrollAdmin()`;
     try {
       const ca = await this.createCaClient(caId);
-      const wallet = new InMemoryWallet(new X509WalletMixin());
+      const wallet = await Wallets.newInMemoryWallet();
 
       // Enroll the admin user, and import the new identity into the wallet.
       const request = { enrollmentID, enrollmentSecret };
       const enrollment = await ca.enroll(request);
 
-      const { certificate: cert, key } = enrollment;
+      const { certificate, key } = enrollment;
       const keyBytes = key.toBytes();
 
-      const identity = X509WalletMixin.createIdentity(mspId, cert, keyBytes);
-      await wallet.import(identityId, identity);
+      const x509Identity: X509Identity = {
+        credentials: {
+          certificate,
+          privateKey: keyBytes,
+        },
+        mspId,
+        type: "X.509",
+      };
+      await wallet.put(identityId, x509Identity);
 
-      return [identity, wallet];
+      return [x509Identity, wallet];
     } catch (ex) {
       this.log.error(`enrollAdmin() Failure:`, ex);
       throw new Error(`${fnTag} Exception: ${ex?.message}`);

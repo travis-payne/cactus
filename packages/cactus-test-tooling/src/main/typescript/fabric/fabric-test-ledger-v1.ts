@@ -8,12 +8,7 @@ import Docker, {
   ContainerInfo,
 } from "dockerode";
 import { Config as SshConfig } from "node-ssh";
-import {
-  X509WalletMixin,
-  InMemoryWallet,
-  Identity,
-  Gateway,
-} from "fabric-network";
+import { Wallets, Gateway, Wallet, X509Identity } from "fabric-network";
 import FabricCAServices from "fabric-ca-client";
 import Joi from "joi";
 import { ITestLedger } from "../i-test-ledger";
@@ -146,10 +141,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
     }
   }
 
-  public async enrollUser(
-    wallet: InMemoryWallet,
-    userId: string,
-  ): Promise<any> {
+  public async enrollUser(wallet: Wallet): Promise<any> {
     const fnTag = `${this.className}#enrollUser()`;
     try {
       const mspId = this.getDefaultMspId();
@@ -167,7 +159,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
       // Get the CA client object from the gateway for interacting with the CA.
       // const ca = gateway.getClient().getCertificateAuthority();
       const ca = await this.createCaClient();
-      const adminIdentity = gateway.getCurrentIdentity();
+      const adminIdentity = gateway.getIdentity();
 
       // Register the user, enroll the user, and import the new identity into the wallet.
       const registrationRequest = {
@@ -175,8 +167,14 @@ export class FabricTestLedgerV1 implements ITestLedger {
         enrollmentID: userId,
         role: "client",
       };
-      const secret = await ca.register(registrationRequest, adminIdentity);
-      this.log.debug(`Registered client user "${userId}" OK`);
+
+      const provider = wallet
+        .getProviderRegistry()
+        .getProvider(adminIdentity.type);
+      const adminUser = await provider.getUserContext(adminIdentity, "admin");
+
+      const secret = await ca.register(registrationRequest, adminUser);
+      this.log.debug(`Registered client user "${enrollmentID}" OK`);
 
       const enrollmentRequest = {
         enrollmentID: userId,
@@ -185,39 +183,52 @@ export class FabricTestLedgerV1 implements ITestLedger {
       const enrollment = await ca.enroll(enrollmentRequest);
       this.log.debug(`Enrolled client user "${userId}" OK`);
 
-      const { certificate: cert, key } = enrollment;
+      const { certificate, key } = enrollment;
       const keyBytes = key.toBytes();
 
-      const identity = X509WalletMixin.createIdentity(mspId, cert, keyBytes);
+      const x509Identity: X509Identity = {
+        credentials: {
+          certificate: certificate,
+          privateKey: keyBytes,
+        },
+        mspId,
+        type: "X.509",
+      };
+      await wallet.put(enrollmentID, x509Identity);
+      this.log.debug(`Wallet import of "${enrollmentID}" OK`);
 
-      await wallet.import(userId, identity);
-      this.log.debug(`Wallet import of "${userId}" OK`);
-
-      return [identity, wallet];
+      return [x509Identity, wallet];
     } catch (ex) {
       this.log.error(`enrollUser() Failure:`, ex);
       throw new Error(`${fnTag} Exception: ${ex?.message}`);
     }
   }
 
-  public async enrollAdmin(): Promise<[Identity, InMemoryWallet]> {
+  public async enrollAdmin(): Promise<[X509Identity, Wallet]> {
     const fnTag = `${this.className}#enrollAdmin()`;
     try {
       const ca = await this.createCaClient();
-      const wallet = new InMemoryWallet(new X509WalletMixin());
+      const wallet = await Wallets.newInMemoryWallet();
 
       // Enroll the admin user, and import the new identity into the wallet.
       const request = { enrollmentID: "admin", enrollmentSecret: "adminpw" };
       const enrollment = await ca.enroll(request);
 
       const mspId = this.getDefaultMspId();
-      const { certificate: cert, key } = enrollment;
+      const { certificate, key } = enrollment;
       const keyBytes = key.toBytes();
 
-      const identity = X509WalletMixin.createIdentity(mspId, cert, keyBytes);
-      await wallet.import("admin", identity);
+      const x509Identity: X509Identity = {
+        credentials: {
+          certificate: certificate,
+          privateKey: keyBytes,
+        },
+        mspId,
+        type: "X.509",
+      };
 
-      return [identity, wallet];
+      await wallet.put("admin", x509Identity);
+      return [x509Identity, wallet];
     } catch (ex) {
       this.log.error(`enrollAdmin() Failure:`, ex);
       throw new Error(`${fnTag} Exception: ${ex?.message}`);
