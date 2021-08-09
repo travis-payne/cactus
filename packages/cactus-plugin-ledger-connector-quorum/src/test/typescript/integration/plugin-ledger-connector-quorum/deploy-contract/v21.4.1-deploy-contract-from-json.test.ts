@@ -177,6 +177,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Call,
       methodName: "sayHello",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
@@ -199,6 +200,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "setName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [newName],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
@@ -216,6 +218,7 @@ test(testCase, async (t: Test) => {
         contractAddress,
         invocationType: EthContractInvocationType.Send,
         methodName: "setName",
+        keychainId: keychainPlugin.getKeychainId(),
         params: [newName],
         gas: 1000000,
         signingCredential: {
@@ -240,6 +243,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "getName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
@@ -255,6 +259,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Call,
       methodName: "getName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
@@ -307,6 +312,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "setName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [newName],
       signingCredential: {
         ethAccount: testEthAccount.address,
@@ -324,6 +330,7 @@ test(testCase, async (t: Test) => {
         contractAddress,
         invocationType: EthContractInvocationType.Send,
         methodName: "setName",
+        keychainId: keychainPlugin.getKeychainId(),
         params: [newName],
         gas: 1000000,
         signingCredential: {
@@ -347,6 +354,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Call,
       methodName: "getName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       gas: 1000000,
       signingCredential: {
@@ -363,6 +371,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "getName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       gas: 1000000,
       signingCredential: {
@@ -392,6 +401,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "setName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [newName],
       gas: 1000000,
       signingCredential,
@@ -406,6 +416,7 @@ test(testCase, async (t: Test) => {
         contractAddress,
         invocationType: EthContractInvocationType.Send,
         methodName: "setName",
+        keychainId: keychainPlugin.getKeychainId(),
         params: [newName],
         gas: 1000000,
         signingCredential: {
@@ -429,6 +440,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Call,
       methodName: "getName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       gas: 1000000,
       signingCredential,
@@ -441,6 +453,7 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "getName",
+      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       gas: 1000000,
       signingCredential,

@@ -8,8 +8,6 @@ import {
   Servers,
 } from "@hyperledger/cactus-common";
 
-import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
-
 import HelloWorldContractJson from "../../../../solidity/hello-world-contract/HelloWorld.json";
 
 import { K_CACTUS_QUORUM_TOTAL_TX_COUNT } from "../../../../../main/typescript/prometheus-exporter/metrics";
@@ -17,7 +15,6 @@ import { K_CACTUS_QUORUM_TOTAL_TX_COUNT } from "../../../../../main/typescript/p
 import {
   EthContractInvocationType,
   PluginLedgerConnectorQuorum,
-  Web3SigningCredentialCactusKeychainRef,
   Web3SigningCredentialType,
   DefaultApi as QuorumApi,
 } from "../../../../../main/typescript/public-api";
@@ -28,7 +25,6 @@ import {
   IAccount,
   pruneDockerAllIfGithubAction,
 } from "@hyperledger/cactus-test-tooling";
-import { PluginRegistry } from "@hyperledger/cactus-core";
 
 const testCase = "Quorum Ledger Connector Plugin";
 import express from "express";
@@ -75,21 +71,6 @@ test(testCase, async (t: Test) => {
   const web3 = new Web3(rpcApiHttpHost);
   const testEthAccount = web3.eth.accounts.create(uuidV4());
 
-  const keychainEntryKey = uuidV4();
-  const keychainEntryValue = testEthAccount.privateKey;
-  const keychainPlugin = new PluginKeychainMemory({
-    instanceId: uuidV4(),
-    keychainId: uuidV4(),
-    // pre-provision keychain with mock backend holding the private key of the
-    // test account that we'll reference while sending requests with the
-    // signing credential pointing to this keychain entry.
-    backend: new Map([[keychainEntryKey, keychainEntryValue]]),
-    logLevel,
-  });
-  keychainPlugin.set(
-    HelloWorldContractJson.contractName,
-    JSON.stringify(HelloWorldContractJson),
-  );
   // Instantiate connector with the keychain plugin that already has the
   // private key we want to use for one of our tests
   const connector: PluginLedgerConnectorQuorum = new PluginLedgerConnectorQuorum(
@@ -97,7 +78,6 @@ test(testCase, async (t: Test) => {
       instanceId: uuidV4(),
       rpcApiHttpHost,
       logLevel,
-      pluginRegistry: new PluginRegistry({ plugins: [keychainPlugin] }),
     },
   );
 
@@ -145,7 +125,6 @@ test(testCase, async (t: Test) => {
   test("deploys contract via .json file", async (t2: Test) => {
     const deployOut = await connector.deployContract({
       contractName: HelloWorldContractJson.contractName,
-      keychainId: keychainPlugin.getKeychainId(),
       web3SigningCredential: {
         ethAccount: firstHighNetWorthAccount,
         secret: "",
@@ -153,6 +132,7 @@ test(testCase, async (t: Test) => {
       },
       bytecode: HelloWorldContractJson.bytecode,
       gas: 1000000,
+      contractJSON: HelloWorldContractJson,
     });
     t2.ok(deployOut, "deployContract() output is truthy OK");
     t2.ok(
@@ -176,13 +156,13 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Call,
       methodName: "sayHello",
-      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
         secret: "",
         type: Web3SigningCredentialType.GethKeychainPassword,
       },
+      contractJSON: HelloWorldContractJson,
     });
     t2.ok(helloMsg, "sayHello() output is truthy");
     t2.true(
@@ -199,7 +179,6 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "setName",
-      keychainId: keychainPlugin.getKeychainId(),
       params: [newName],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
@@ -207,6 +186,7 @@ test(testCase, async (t: Test) => {
         type: Web3SigningCredentialType.GethKeychainPassword,
       },
       nonce: 2,
+      contractJSON: HelloWorldContractJson,
     });
     t2.ok(setNameOut, "setName() invocation #1 output is truthy OK");
 
@@ -217,7 +197,6 @@ test(testCase, async (t: Test) => {
         contractAddress,
         invocationType: EthContractInvocationType.Send,
         methodName: "setName",
-        keychainId: keychainPlugin.getKeychainId(),
         params: [newName],
         gas: 1000000,
         signingCredential: {
@@ -226,6 +205,7 @@ test(testCase, async (t: Test) => {
           type: Web3SigningCredentialType.GethKeychainPassword,
         },
         nonce: 2,
+        contractJSON: HelloWorldContractJson,
       });
       t2.ifError(setNameOutInvalid.transactionReceipt);
     } catch (error) {
@@ -242,13 +222,13 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "getName",
-      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
         secret: "",
         type: Web3SigningCredentialType.GethKeychainPassword,
       },
+      contractJSON: HelloWorldContractJson,
     });
     t2.ok(getNameOut.success, `getName() SEND invocation produced receipt OK`);
 
@@ -258,13 +238,13 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Call,
       methodName: "getName",
-      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       signingCredential: {
         ethAccount: firstHighNetWorthAccount,
         secret: "",
         type: Web3SigningCredentialType.GethKeychainPassword,
       },
+      contractJSON: HelloWorldContractJson,
     });
     t2.equal(
       getNameOut2,
@@ -311,7 +291,6 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "setName",
-      keychainId: keychainPlugin.getKeychainId(),
       params: [newName],
       signingCredential: {
         ethAccount: testEthAccount.address,
@@ -319,6 +298,7 @@ test(testCase, async (t: Test) => {
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
       nonce: 1,
+      contractJSON: HelloWorldContractJson,
     });
     t2.ok(setNameOut, "setName() invocation #1 output is truthy OK");
 
@@ -329,7 +309,6 @@ test(testCase, async (t: Test) => {
         contractAddress,
         invocationType: EthContractInvocationType.Send,
         methodName: "setName",
-        keychainId: keychainPlugin.getKeychainId(),
         params: [newName],
         gas: 1000000,
         signingCredential: {
@@ -338,6 +317,7 @@ test(testCase, async (t: Test) => {
           type: Web3SigningCredentialType.PrivateKeyHex,
         },
         nonce: 1,
+        contractJSON: HelloWorldContractJson,
       });
       t2.ifError(setNameOutInvalid.transactionReceipt);
     } catch (error) {
@@ -353,7 +333,6 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Call,
       methodName: "getName",
-      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       gas: 1000000,
       signingCredential: {
@@ -361,6 +340,7 @@ test(testCase, async (t: Test) => {
         secret: testEthAccount.privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
+      contractJSON: HelloWorldContractJson,
     });
     t2.equal(getNameOut, newName, `getName() output reflects the update OK`);
 
@@ -370,7 +350,6 @@ test(testCase, async (t: Test) => {
       contractAddress,
       invocationType: EthContractInvocationType.Send,
       methodName: "getName",
-      keychainId: keychainPlugin.getKeychainId(),
       params: [],
       gas: 1000000,
       signingCredential: {
@@ -378,84 +357,7 @@ test(testCase, async (t: Test) => {
         secret: testEthAccount.privateKey,
         type: Web3SigningCredentialType.PrivateKeyHex,
       },
-    });
-    t2.ok(getNameOut2, "getName() invocation #2 output is truthy OK");
-
-    t2.end();
-  });
-
-  test("invoke Web3SigningCredentialType.CactusKeychainRef", async (t2: Test) => {
-    const newName = `DrCactus${uuidV4()}`;
-
-    const signingCredential: Web3SigningCredentialCactusKeychainRef = {
-      ethAccount: testEthAccount.address,
-      keychainEntryKey,
-      keychainId: keychainPlugin.getKeychainId(),
-      type: Web3SigningCredentialType.CactusKeychainRef,
-    };
-
-    const setNameOut = await connector.invokeContract({
-      contractName,
-      contractAbi: HelloWorldContractJson.abi,
-      contractAddress,
-      invocationType: EthContractInvocationType.Send,
-      methodName: "setName",
-      keychainId: keychainPlugin.getKeychainId(),
-      params: [newName],
-      gas: 1000000,
-      signingCredential,
-      nonce: 3,
-    });
-    t2.ok(setNameOut, "setName() invocation #1 output is truthy OK");
-
-    try {
-      const setNameOutInvalid = await connector.invokeContract({
-        contractName,
-        contractAbi: HelloWorldContractJson.abi,
-        contractAddress,
-        invocationType: EthContractInvocationType.Send,
-        methodName: "setName",
-        keychainId: keychainPlugin.getKeychainId(),
-        params: [newName],
-        gas: 1000000,
-        signingCredential: {
-          ethAccount: firstHighNetWorthAccount,
-          secret: "",
-          type: Web3SigningCredentialType.GethKeychainPassword,
-        },
-        nonce: 3,
-      });
-      t2.ifError(setNameOutInvalid.transactionReceipt);
-    } catch (error) {
-      t2.notStrictEqual(
-        error,
-        "Nonce too low",
-        "setName() invocation with invalid nonce",
-      );
-    }
-    const { callOutput: getNameOut } = await connector.invokeContract({
-      contractName,
-      contractAbi: HelloWorldContractJson.abi,
-      contractAddress,
-      invocationType: EthContractInvocationType.Call,
-      methodName: "getName",
-      keychainId: keychainPlugin.getKeychainId(),
-      params: [],
-      gas: 1000000,
-      signingCredential,
-    });
-    t2.equal(getNameOut, newName, `getName() output reflects the update OK`);
-
-    const getNameOut2 = await connector.invokeContract({
-      contractName,
-      contractAbi: HelloWorldContractJson.abi,
-      contractAddress,
-      invocationType: EthContractInvocationType.Send,
-      methodName: "getName",
-      keychainId: keychainPlugin.getKeychainId(),
-      params: [],
-      gas: 1000000,
-      signingCredential,
+      contractJSON: HelloWorldContractJson,
     });
     t2.ok(getNameOut2, "getName() invocation #2 output is truthy OK");
 
@@ -474,13 +376,13 @@ test(testCase, async (t: Test) => {
       K_CACTUS_QUORUM_TOTAL_TX_COUNT +
       '{type="' +
       K_CACTUS_QUORUM_TOTAL_TX_COUNT +
-      '"} 5';
+      '"} 3';
     t2.ok(res);
     t2.ok(res.data);
     t2.equal(res.status, 200);
     t2.true(
       res.data.includes(promMetricsOutput),
-      "Total Transaction Count of 5 recorded as expected. RESULT OK.",
+      "Total Transaction Count of 3 recorded as expected. RESULT OK.",
     );
     t2.end();
   });

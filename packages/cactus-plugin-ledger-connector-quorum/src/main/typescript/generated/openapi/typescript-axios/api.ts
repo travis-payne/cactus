@@ -50,7 +50,7 @@ export interface DeployContractSolidityBytecodeV1Request {
      * @type {string}
      * @memberof DeployContractSolidityBytecodeV1Request
      */
-    keychainId: string;
+    keychainId?: string;
     /**
      * 
      * @type {number}
@@ -69,6 +69,12 @@ export interface DeployContractSolidityBytecodeV1Request {
      * @memberof DeployContractSolidityBytecodeV1Request
      */
     timeoutMs?: number;
+    /**
+     * For use when not using keychain, pass the contract in as this variable
+     * @type {object}
+     * @memberof DeployContractSolidityBytecodeV1Request
+     */
+    contractJSON?: object;
 }
 /**
  * 
@@ -177,6 +183,12 @@ export interface InvokeContractV1Request {
      * @memberof InvokeContractV1Request
      */
     keychainId?: string;
+    /**
+     * The contract object to be passed if not using keychain.
+     * @type {object}
+     * @memberof InvokeContractV1Request
+     */
+    contractJSON?: object;
 }
 /**
  * 
@@ -394,13 +406,13 @@ export interface Web3SigningCredentialCactusKeychainRef {
      * @type {string}
      * @memberof Web3SigningCredentialCactusKeychainRef
      */
-    keychainEntryKey: string;
+    keychainEntryKey?: string;
     /**
      * The keychain ID to use when looking up the the keychain plugin instance that will be used to retrieve the secret pointed to by the keychainEntryKey parameter.
      * @type {string}
      * @memberof Web3SigningCredentialCactusKeychainRef
      */
-    keychainId: string;
+    keychainId?: string;
 }
 /**
  * 

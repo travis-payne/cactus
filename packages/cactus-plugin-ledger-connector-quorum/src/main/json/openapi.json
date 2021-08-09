@@ -89,9 +89,7 @@
                 "type": "object",
                 "required": [
                     "type",
-                    "ethAccount",
-                    "keychainId",
-                    "keychainEntryKey"
+                    "ethAccount"
                 ],
                 "properties": {
                     "type": {
@@ -409,8 +407,7 @@
                 "required": [
                     "contractName",
                     "bytecode",
-                    "web3SigningCredential",
-                    "keychainId"
+                    "web3SigningCredential"
                 ],
                 "properties": {
                     "contractName": {
@@ -451,6 +448,11 @@
                         "description": "The amount of milliseconds to wait for a transaction receipt with theaddress of the contract(which indicates successful deployment) beforegiving up and crashing.",
                         "minimum": 0,
                         "default": 60000,
+                        "nullable": false
+                    },
+                    "contractJSON": {
+                        "type": "object",
+                        "description": "For use when not using keychain, pass the contract in as this variable",
                         "nullable": false
                     }
                 }
@@ -558,6 +560,11 @@
                         "description": "The keychainId for retrieve the contracts json.",
                         "minLength": 1,
                         "maxLength": 100
+                    },
+                    "contractJSON":{
+                        "type": "object",
+                        "description": "The contract object to be passed if not using keychain.",
+                        "nullable": false
                     }
                 }
             },
