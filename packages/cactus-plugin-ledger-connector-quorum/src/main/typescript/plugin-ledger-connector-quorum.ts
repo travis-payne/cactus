@@ -103,7 +103,7 @@ export class PluginLedgerConnectorQuorum
     Checks.truthy(options, `${fnTag} arg options`);
     Checks.truthy(options.rpcApiHttpHost, `${fnTag} options.rpcApiHttpHost`);
     Checks.truthy(options.instanceId, `${fnTag} options.instanceId`);
-    //Checks.truthy(options.pluginRegistry, `${fnTag} options.pluginRegistry`);
+    Checks.truthy(options.pluginRegistry, `${fnTag} options.pluginRegistry`);
 
     const level = this.options.logLevel || "INFO";
     const label = this.className;
