@@ -67,7 +67,7 @@ export interface IPluginLedgerConnectorQuorumOptions
   rpcApiHttpHost: string;
   logLevel?: LogLevelDesc;
   prometheusExporter?: PrometheusExporter;
-  pluginRegistry?: PluginRegistry;
+  pluginRegistry: PluginRegistry;
 }
 
 export class PluginLedgerConnectorQuorum

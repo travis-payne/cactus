@@ -17,6 +17,7 @@ import {
   IQuorumGenesisOptions,
   IAccount,
 } from "@hyperledger/cactus-test-tooling";
+import { PluginRegistry } from "@hyperledger/cactus-core";
 
 const logLevel: LogLevelDesc = "INFO";
 const contractName = "HelloWorld";
@@ -53,6 +54,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
       instanceId: uuidV4(),
       rpcApiHttpHost,
       logLevel,
+      pluginRegistry: new PluginRegistry(),
     },
   );
 

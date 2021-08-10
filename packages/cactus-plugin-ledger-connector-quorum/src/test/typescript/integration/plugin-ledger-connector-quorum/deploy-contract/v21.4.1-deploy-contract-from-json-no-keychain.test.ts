@@ -32,6 +32,7 @@ import bodyParser from "body-parser";
 import http from "http";
 import { AddressInfo } from "net";
 import { Configuration } from "@hyperledger/cactus-core-api";
+import { PluginRegistry } from "@hyperledger/cactus-core";
 
 const logLevel: LogLevelDesc = "INFO";
 const contractName = "HelloWorld";
@@ -76,6 +77,7 @@ test(testCase, async (t: Test) => {
       instanceId: uuidV4(),
       rpcApiHttpHost,
       logLevel,
+      pluginRegistry: new PluginRegistry(),
     },
   );
 

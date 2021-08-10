@@ -25,6 +25,7 @@ import {
   IAccount,
   pruneDockerAllIfGithubAction,
 } from "@hyperledger/cactus-test-tooling";
+import { PluginRegistry } from "@hyperledger/cactus-core";
 
 const testCase = "Quorum Ledger Connector Plugin";
 import express from "express";
@@ -78,6 +79,7 @@ test(testCase, async (t: Test) => {
       instanceId: uuidV4(),
       rpcApiHttpHost,
       logLevel,
+      pluginRegistry: new PluginRegistry(),
     },
   );
 
