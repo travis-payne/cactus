@@ -17,25 +17,25 @@ import {
 import { registerWebServiceEndpoint } from "@hyperledger/cactus-core";
 
 import { PluginLedgerConnectorFabric } from "../plugin-ledger-connector-fabric";
-import { SendSignedProposalRequest } from "../generated/openapi/typescript-axios";
+import { SendSignedCommitRequest } from "../generated/openapi/typescript-axios";
 import OAS from "../../json/openapi.json";
 
-export interface ISendSignedProposalEndpointV1Options {
+export interface ISendSignedCommitEndpointOptions {
   logLevel?: LogLevelDesc;
   connector: PluginLedgerConnectorFabric;
 }
 
-export class SendSignedProposalEndpointV1 implements IWebServiceEndpoint {
+export class SendSignedCommitEndpoint implements IWebServiceEndpoint {
   private readonly log: Logger;
 
-  constructor(public readonly opts: ISendSignedProposalEndpointV1Options) {
-    const fnTag = "RunTransactionEndpointV1#constructor()";
+  constructor(public readonly opts: ISendSignedCommitEndpointOptions) {
+    const fnTag = "SendSignedCommitEndpoint#constructor()";
 
     Checks.truthy(opts, `${fnTag} options`);
     Checks.truthy(opts.connector, `${fnTag} options.connector`);
 
     this.log = LoggerProvider.getOrCreate({
-      label: "run-transaction-endpoint-v1",
+      label: "send-signed-commit-endpoint",
       level: opts.logLevel || "INFO",
     });
   }
@@ -56,7 +56,7 @@ export class SendSignedProposalEndpointV1 implements IWebServiceEndpoint {
 
   public getOasPath() {
     return OAS.paths[
-      "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/run-transaction"
+      "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-commit"
     ];
   }
 
@@ -82,12 +82,12 @@ export class SendSignedProposalEndpointV1 implements IWebServiceEndpoint {
   }
 
   async handleRequest(req: Request, res: Response): Promise<void> {
-    const fnTag = "SendSignedProposalEndpointV1#handleRequest()";
+    const fnTag = "SendSignedCommit#handleRequest()";
     this.log.debug(`POST ${this.getPath()}`);
 
     try {
-      const reqBody = req.body as SendSignedProposalRequest;
-      const resBody = await this.opts.connector.sendSignedProposal(reqBody);
+      const reqBody = req.body as SendSignedCommitRequest;
+      const resBody = await this.opts.connector.sendSignedCommit(reqBody);
       res.status(200);
       res.json(resBody);
     } catch (ex) {

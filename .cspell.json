@@ -90,7 +90,9 @@
         "uuidv",
         "vscc",
         "wasm",
-        "Xdai"
+        "Xdai",
+        "jsrsasign",
+        "shrn"
     ],
     "dictionaries": [
         "typescript,node,npm,go,rust"

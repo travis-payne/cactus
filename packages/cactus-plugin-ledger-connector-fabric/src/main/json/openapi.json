@@ -481,21 +481,156 @@
                     }
                 }
             },
-            "SendSignedTransactionResponse": {
+            "UnsignedProposalRequest": {
                 "type": "object",
                 "required": [
-                    "status"
+                    "channelName",
+                    "chaincodeName",
+                    "functionName",
+                    "functionArgs",
+                    "signingCredential",
+                    "serviceUserName"
                 ],
                 "properties": {
-                    "status": {
+                    "channelName": {
                         "type": "string",
                         "nullable": false
                     },
-                    "info": {
+                    "chaincodeName": {
                         "type": "string",
-                        "nullable": true
+                        "nullable": false
+                    },
+                    "functionName": {
+                        "type": "string",
+                        "nullable": false
+                    },
+                    "functionArgs": {
+                        "type": "array",
+                        "nullable": false,
+                        "default": [],
+                        "items": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    "signingCredential": {
+                        "$ref": "#/components/schemas/FabricSigningCredential",
+                        "nullable": false
+                    },
+                    "serviceUserIdentity": {
+                        "type": "string"
+                    },
+                    "serviceUserName": {
+                        "type": "string",
+                        "default": "",
+                        "nullable": false
                     }
                 }
+            },
+            "UnsignedProposalResponse": {
+                "type": "object"
+            },
+            "SendSignedEndorsementRequest": {
+                "type": "object",
+                "required": [
+                    "endorsement",
+                    "signedProposal",
+                    "serviceUserName",
+                    "channelName",
+                    "organisation"
+                ],
+                "properties": {
+                    "endorsement": {
+                        "type": "object",
+                        "nullable": false
+                    },
+                    "signedProposal": {
+                        "type": "object",
+                        "nullable": false
+                    },
+                    "serviceUserIdentity": {
+                        "type": "string"
+                    },
+                    "signingCredential": {
+                        "$ref": "#/components/schemas/FabricSigningCredential",
+                        "nullable": false
+                    },
+                    "serviceUserName": {
+                        "type": "string",
+                        "default": "",
+                        "nullable": false
+                    },
+                    "channelName": {
+                        "type": "string",
+                        "nullable": false
+                    },
+                    "organisation": {
+                        "type": "string",
+                        "nullable": false
+                    }
+                }
+            },
+            "SendSignedEndorsementResponse": {
+                "type": "object"
+            },
+            "SendSignedCommitRequest": {
+                "type": "object",
+                "required": [
+                    "endorsement",
+                    "signedProposal",
+                    "serviceUserName",
+                    "channelName",
+                    "chaincodeName",
+                    "functionName",
+                    "functionArgs",
+                    "organisation"
+                ],
+                "properties": {
+                    "commit": {
+                        "type": "object",
+                        "nullable": false
+                    },
+                    "serviceUserIdentity": {
+                        "type": "string"
+                    },
+                    "signingCredential": {
+                        "$ref": "#/components/schemas/FabricSigningCredential",
+                        "nullable": false
+                    },
+                    "serviceUserName": {
+                        "type": "string",
+                        "default": "",
+                        "nullable": false
+                    },
+                    "channelName": {
+                        "type": "string",
+                        "nullable": false
+                    },
+                    "chaincodeName": {
+                        "type": "string",
+                        "nullable": false
+                    },
+                    "functionName": {
+                        "type": "string",
+                        "nullable": false
+                    },
+                    "functionArgs": {
+                        "type": "array",
+                        "nullable": false,
+                        "default": [],
+                        "items": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    "organisation": {
+                        "type": "string",
+                        "nullable": false
+                    }
+                }
+            },
+            "SendSignedCommitResponse": {
+                "type": "object"
             },
             "SendSignedProposalResponse": {
                 "type": "object",
@@ -976,16 +1111,16 @@
                 }
             }
         },
-        "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-proposal": {
+        "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-endorsement": {
             "post": {
                 "x-hyperledger-cactus": {
                     "http": {
                         "verbLowerCase": "post",
-                        "path": "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-proposal"
+                        "path": "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-endorsement"
                     }
                 },
-                "operationId": "sendSignedProposalV1",
-                "summary": "Sends a pre-signed proposal to the Fabric ledger.",
+                "operationId": "sendSignedEndorsement",
+                "summary": "Sends a pre-signed endorsement to the Fabric ledger.",
                 "description": "",
                 "parameters": [],
                 "requestBody": {
@@ -993,7 +1128,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/SendSignedProposalRequest"
+                                "$ref": "#/components/schemas/SendSignedEndorsementRequest"
                             }
                         }
                     }
@@ -1004,7 +1139,85 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/RunTransactionResponse"
+                                    "$ref": "#/components/schemas/SendSignedEndorsementResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/generate-unsigned-proposal": {
+            "post": {
+                "x-hyperledger-cactus": {
+                    "http": {
+                        "verbLowerCase": "post",
+                        "path": "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/generate-unsigned-proposal"
+                    }
+                },
+                "operationId": "generateUnsignedProposal",
+                "summary": "Sends a pre-signed proposal to the Fabric ledger.",
+                "description": "",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UnsignedProposalRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UnsignedProposalResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-commit": {
+            "post": {
+                "x-hyperledger-cactus": {
+                    "http": {
+                        "verbLowerCase": "post",
+                        "path": "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-commit"
+                    }
+                },
+                "operationId": "sendSignedCommit",
+                "summary": "Sends a pre-signed commit to the Fabric ledger.",
+                "description": "",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SendSignedCommitRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SendSignedCommitResponse"
                                 }
                             }
                         }

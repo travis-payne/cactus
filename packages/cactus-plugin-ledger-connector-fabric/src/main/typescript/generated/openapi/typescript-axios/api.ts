@@ -823,6 +823,116 @@ export interface SSHExecCommandResponse {
 /**
  * 
  * @export
+ * @interface SendSignedCommitRequest
+ */
+export interface SendSignedCommitRequest {
+    /**
+     * 
+     * @type {object}
+     * @memberof SendSignedCommitRequest
+     */
+    commit?: object;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedCommitRequest
+     */
+    serviceUserIdentity?: string;
+    /**
+     * 
+     * @type {FabricSigningCredential}
+     * @memberof SendSignedCommitRequest
+     */
+    signingCredential?: FabricSigningCredential;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedCommitRequest
+     */
+    serviceUserName: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedCommitRequest
+     */
+    channelName: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedCommitRequest
+     */
+    chaincodeName: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedCommitRequest
+     */
+    functionName: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof SendSignedCommitRequest
+     */
+    functionArgs: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedCommitRequest
+     */
+    organisation: string;
+}
+/**
+ * 
+ * @export
+ * @interface SendSignedEndorsementRequest
+ */
+export interface SendSignedEndorsementRequest {
+    /**
+     * 
+     * @type {object}
+     * @memberof SendSignedEndorsementRequest
+     */
+    endorsement: object;
+    /**
+     * 
+     * @type {object}
+     * @memberof SendSignedEndorsementRequest
+     */
+    signedProposal: object;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedEndorsementRequest
+     */
+    serviceUserIdentity?: string;
+    /**
+     * 
+     * @type {FabricSigningCredential}
+     * @memberof SendSignedEndorsementRequest
+     */
+    signingCredential?: FabricSigningCredential;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedEndorsementRequest
+     */
+    serviceUserName: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedEndorsementRequest
+     */
+    channelName: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SendSignedEndorsementRequest
+     */
+    organisation: string;
+}
+/**
+ * 
+ * @export
  * @interface SendSignedProposalRequest
  */
 export interface SendSignedProposalRequest {
@@ -904,21 +1014,51 @@ export interface SendSignedTransactionRequest {
 /**
  * 
  * @export
- * @interface SendSignedTransactionResponse
+ * @interface UnsignedProposalRequest
  */
-export interface SendSignedTransactionResponse {
+export interface UnsignedProposalRequest {
     /**
      * 
      * @type {string}
-     * @memberof SendSignedTransactionResponse
+     * @memberof UnsignedProposalRequest
      */
-    status: string;
+    channelName: string;
     /**
      * 
      * @type {string}
-     * @memberof SendSignedTransactionResponse
+     * @memberof UnsignedProposalRequest
      */
-    info?: string | null;
+    chaincodeName: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UnsignedProposalRequest
+     */
+    functionName: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof UnsignedProposalRequest
+     */
+    functionArgs: Array<string>;
+    /**
+     * 
+     * @type {FabricSigningCredential}
+     * @memberof UnsignedProposalRequest
+     */
+    signingCredential: FabricSigningCredential;
+    /**
+     * 
+     * @type {string}
+     * @memberof UnsignedProposalRequest
+     */
+    serviceUserIdentity?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UnsignedProposalRequest
+     */
+    serviceUserName: string;
 }
 
 /**
@@ -997,6 +1137,42 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          * 
+         * @summary Sends a pre-signed proposal to the Fabric ledger.
+         * @param {UnsignedProposalRequest} unsignedProposalRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        generateUnsignedProposal: async (unsignedProposalRequest: UnsignedProposalRequest, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'unsignedProposalRequest' is not null or undefined
+            assertParamExists('generateUnsignedProposal', 'unsignedProposalRequest', unsignedProposalRequest)
+            const localVarPath = `/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/generate-unsigned-proposal`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(unsignedProposalRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @summary Get the Prometheus Metrics
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1063,15 +1239,15 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
         },
         /**
          * 
-         * @summary Sends a pre-signed proposal to the Fabric ledger.
-         * @param {SendSignedProposalRequest} sendSignedProposalRequest 
+         * @summary Sends a pre-signed commit to the Fabric ledger.
+         * @param {SendSignedCommitRequest} sendSignedCommitRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        sendSignedProposalV1: async (sendSignedProposalRequest: SendSignedProposalRequest, options: any = {}): Promise<RequestArgs> => {
-            // verify required parameter 'sendSignedProposalRequest' is not null or undefined
-            assertParamExists('sendSignedProposalV1', 'sendSignedProposalRequest', sendSignedProposalRequest)
-            const localVarPath = `/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-proposal`;
+        sendSignedCommit: async (sendSignedCommitRequest: SendSignedCommitRequest, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'sendSignedCommitRequest' is not null or undefined
+            assertParamExists('sendSignedCommit', 'sendSignedCommitRequest', sendSignedCommitRequest)
+            const localVarPath = `/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-commit`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -1090,7 +1266,43 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(sendSignedProposalRequest, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(sendSignedCommitRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Sends a pre-signed endorsement to the Fabric ledger.
+         * @param {SendSignedEndorsementRequest} sendSignedEndorsementRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        sendSignedEndorsement: async (sendSignedEndorsementRequest: SendSignedEndorsementRequest, options: any = {}): Promise<RequestArgs> => {
+            // verify required parameter 'sendSignedEndorsementRequest' is not null or undefined
+            assertParamExists('sendSignedEndorsement', 'sendSignedEndorsementRequest', sendSignedEndorsementRequest)
+            const localVarPath = `/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-fabric/send-signed-endorsement`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(sendSignedEndorsementRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -1131,6 +1343,17 @@ export const DefaultApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary Sends a pre-signed proposal to the Fabric ledger.
+         * @param {UnsignedProposalRequest} unsignedProposalRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async generateUnsignedProposal(unsignedProposalRequest: UnsignedProposalRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.generateUnsignedProposal(unsignedProposalRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
          * @summary Get the Prometheus Metrics
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1152,13 +1375,24 @@ export const DefaultApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @summary Sends a pre-signed proposal to the Fabric ledger.
-         * @param {SendSignedProposalRequest} sendSignedProposalRequest 
+         * @summary Sends a pre-signed commit to the Fabric ledger.
+         * @param {SendSignedCommitRequest} sendSignedCommitRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async sendSignedProposalV1(sendSignedProposalRequest: SendSignedProposalRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RunTransactionResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.sendSignedProposalV1(sendSignedProposalRequest, options);
+        async sendSignedCommit(sendSignedCommitRequest: SendSignedCommitRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.sendSignedCommit(sendSignedCommitRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary Sends a pre-signed endorsement to the Fabric ledger.
+         * @param {SendSignedEndorsementRequest} sendSignedEndorsementRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async sendSignedEndorsement(sendSignedEndorsementRequest: SendSignedEndorsementRequest, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.sendSignedEndorsement(sendSignedEndorsementRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
     }
@@ -1193,6 +1427,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          * 
+         * @summary Sends a pre-signed proposal to the Fabric ledger.
+         * @param {UnsignedProposalRequest} unsignedProposalRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        generateUnsignedProposal(unsignedProposalRequest: UnsignedProposalRequest, options?: any): AxiosPromise<object> {
+            return localVarFp.generateUnsignedProposal(unsignedProposalRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
          * @summary Get the Prometheus Metrics
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1212,13 +1456,23 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          * 
-         * @summary Sends a pre-signed proposal to the Fabric ledger.
-         * @param {SendSignedProposalRequest} sendSignedProposalRequest 
+         * @summary Sends a pre-signed commit to the Fabric ledger.
+         * @param {SendSignedCommitRequest} sendSignedCommitRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        sendSignedProposalV1(sendSignedProposalRequest: SendSignedProposalRequest, options?: any): AxiosPromise<RunTransactionResponse> {
-            return localVarFp.sendSignedProposalV1(sendSignedProposalRequest, options).then((request) => request(axios, basePath));
+        sendSignedCommit(sendSignedCommitRequest: SendSignedCommitRequest, options?: any): AxiosPromise<object> {
+            return localVarFp.sendSignedCommit(sendSignedCommitRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Sends a pre-signed endorsement to the Fabric ledger.
+         * @param {SendSignedEndorsementRequest} sendSignedEndorsementRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        sendSignedEndorsement(sendSignedEndorsementRequest: SendSignedEndorsementRequest, options?: any): AxiosPromise<object> {
+            return localVarFp.sendSignedEndorsement(sendSignedEndorsementRequest, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -1256,6 +1510,18 @@ export class DefaultApi extends BaseAPI {
 
     /**
      * 
+     * @summary Sends a pre-signed proposal to the Fabric ledger.
+     * @param {UnsignedProposalRequest} unsignedProposalRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public generateUnsignedProposal(unsignedProposalRequest: UnsignedProposalRequest, options?: any) {
+        return DefaultApiFp(this.configuration).generateUnsignedProposal(unsignedProposalRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
      * @summary Get the Prometheus Metrics
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1279,14 +1545,26 @@ export class DefaultApi extends BaseAPI {
 
     /**
      * 
-     * @summary Sends a pre-signed proposal to the Fabric ledger.
-     * @param {SendSignedProposalRequest} sendSignedProposalRequest 
+     * @summary Sends a pre-signed commit to the Fabric ledger.
+     * @param {SendSignedCommitRequest} sendSignedCommitRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public sendSignedProposalV1(sendSignedProposalRequest: SendSignedProposalRequest, options?: any) {
-        return DefaultApiFp(this.configuration).sendSignedProposalV1(sendSignedProposalRequest, options).then((request) => request(this.axios, this.basePath));
+    public sendSignedCommit(sendSignedCommitRequest: SendSignedCommitRequest, options?: any) {
+        return DefaultApiFp(this.configuration).sendSignedCommit(sendSignedCommitRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Sends a pre-signed endorsement to the Fabric ledger.
+     * @param {SendSignedEndorsementRequest} sendSignedEndorsementRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public sendSignedEndorsement(sendSignedEndorsementRequest: SendSignedEndorsementRequest, options?: any) {
+        return DefaultApiFp(this.configuration).sendSignedEndorsement(sendSignedEndorsementRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

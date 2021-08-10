@@ -141,7 +141,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
     }
   }
 
-  public async enrollUser(wallet: Wallet): Promise<any> {
+  public async enrollUser(wallet: Wallet, userId: string): Promise<any> {
     const fnTag = `${this.className}#enrollUser()`;
     try {
       const mspId = this.getDefaultMspId();
@@ -174,7 +174,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
       const adminUser = await provider.getUserContext(adminIdentity, "admin");
 
       const secret = await ca.register(registrationRequest, adminUser);
-      this.log.debug(`Registered client user "${enrollmentID}" OK`);
+      this.log.debug(`Registered client user "${userId}" OK`);
 
       const enrollmentRequest = {
         enrollmentID: userId,
@@ -194,8 +194,8 @@ export class FabricTestLedgerV1 implements ITestLedger {
         mspId,
         type: "X.509",
       };
-      await wallet.put(enrollmentID, x509Identity);
-      this.log.debug(`Wallet import of "${enrollmentID}" OK`);
+      await wallet.put(userId, x509Identity);
+      this.log.debug(`Wallet import of "${userId}" OK`);
 
       return [x509Identity, wallet];
     } catch (ex) {

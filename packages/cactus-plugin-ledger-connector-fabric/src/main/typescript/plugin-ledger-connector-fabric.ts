@@ -22,6 +22,8 @@ import {
   X509Identity,
   TransientMap,
   Wallet,
+  Network,
+  Identity,
 } from "fabric-network";
 
 import { Optional } from "typescript-optional";
@@ -72,6 +74,12 @@ import {
   ChainCodeLifeCycleCommandResponses,
   FabricSigningCredential,
   DefaultEventHandlerStrategy,
+  SendSignedTransactionRequest,
+  FabricSigningCredentialCactusKeychainRef,
+  FabricSigningCredentialType,
+  SendSignedEndorsementRequest,
+  UnsignedProposalRequest,
+  SendSignedCommitRequest,
 } from "./generated/openapi/typescript-axios/index";
 
 import {
@@ -89,6 +97,30 @@ import {
 import { sourceLangToRuntimeLang } from "./peer/source-lang-to-runtime-lang";
 import FabricCAServices from "fabric-ca-client";
 import { createGateway } from "./common/create-gateway";
+
+import {
+  Channel,
+  Client,
+  Commit,
+  Discoverer,
+  DiscoveryService,
+  Endorsement,
+  Endorser,
+  Endpoint,
+} from "fabric-common";
+import {
+  GenerateUnsignedProposalEndpointV1,
+  IGenerateUnsignedProposalEndpointV1Options,
+} from "./web-services/generate-unsigned-proposal-endpoint-v1";
+import {
+  ISendSignedEndorsementEndpointOptions,
+  SendSignedEndorsementEndpoint,
+} from "./web-services/send-signed-endorsement-endpoint";
+import {
+  ISendSignedCommitEndpointOptions,
+  SendSignedCommitEndpoint,
+} from "./web-services/send-signed-commit";
+// import { Channel } from "fabric-common";
 
 /**
  * Constant value holding the default $GOPATH in the Fabric CLI container as
@@ -135,9 +167,8 @@ export class PluginLedgerConnectorFabric
   private readonly dockerBinary: string;
   private readonly peerBinary: string;
   private readonly goBinary: string;
-  private readonly serviceUserId: string = "serviceUser";
-  private readonly serviceUserPw: string = "serviceUserPw";
-  private serviceIdentity: Identity | undefined;
+  // private readonly serviceUserPw: string = "serviceUserPw";
+  // private serviceIdentity: Identity | undefined;
   private readonly cliContainerGoPath: string;
   public prometheusExporter: PrometheusExporter;
   private endpoints: IWebServiceEndpoint[] | undefined;
@@ -795,20 +826,29 @@ export class PluginLedgerConnectorFabric
     }
 
     {
-      const opts: ISendSignedProposalEndpointV1Options = {
+      const opts: IGenerateUnsignedProposalEndpointV1Options = {
         connector: this,
         logLevel: this.opts.logLevel,
       };
-      const endpoint = new SendSignedProposalEndpointV1(opts);
+      const endpoint = new GenerateUnsignedProposalEndpointV1(opts);
       endpoints.push(endpoint);
     }
 
     {
-      const opts: ISendSignedTransactionEndpointV1Options = {
+      const opts: ISendSignedEndorsementEndpointOptions = {
         connector: this,
         logLevel: this.opts.logLevel,
       };
-      const endpoint = new SendSignedTransactionEndpointV1(opts);
+      const endpoint = new SendSignedEndorsementEndpoint(opts);
+      endpoints.push(endpoint);
+    }
+
+    {
+      const opts: ISendSignedCommitEndpointOptions = {
+        connector: this,
+        logLevel: this.opts.logLevel,
+      };
+      const endpoint = new SendSignedCommitEndpoint(opts);
       endpoints.push(endpoint);
     }
 
@@ -856,19 +896,22 @@ export class PluginLedgerConnectorFabric
 
     const wallet = await Wallets.newInMemoryWallet();
 
-    const keychain = this.opts.pluginRegistry.findOneByKeychainId(
-      signingCredential.keychainId,
-    );
-    this.log.debug(
-      "transact() obtained keychain by ID=%o OK",
-      signingCredential.keychainId,
-    );
+    if (signingCredential.type == FabricSigningCredentialType.None) {
+    }
+
+    const {
+      keychainId,
+      keychainRef,
+    } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
+    const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+    this.log.debug("transact() obtained keychain by ID=%o OK", keychainId);
 
     const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
     this.log.debug("transact() obtained keychain entry Key=%o OK", keychainRef);
     const identity = JSON.parse(fabricX509IdentityJson);
 
-    await wallet.put(signingCredential.keychainRef, identity);
+    await wallet.put(keychainRef, identity);
     this.log.debug("transact() imported identity to in-memory wallet OK");
 
     const eventHandlerOptions: DefaultEventHandlerOptions = {
@@ -883,7 +926,7 @@ export class PluginLedgerConnectorFabric
     const gatewayOptions: GatewayOptions = {
       discovery: this.opts.discoveryOptions,
       eventHandlerOptions,
-      identity: signingCredential.keychainRef,
+      identity: keychainRef,
       wallet,
     };
 
@@ -900,6 +943,350 @@ export class PluginLedgerConnectorFabric
     this.log.debug("transact() gateway connection established OK");
 
     return gateway;
+  }
+
+  public async generateUnsignedProposal(
+    req: UnsignedProposalRequest,
+  ): Promise<any> {
+    const fnTag = `${this.className}#sendSignedTransaction()`;
+    const { connectionProfile } = this.opts;
+    const { signingCredential, serviceUserIdentity, serviceUserName } = req;
+    const gateway = new Gateway();
+
+    // If no method of specifying service user credentials, throw error.
+    if (!serviceUserIdentity && !signingCredential) {
+      throw new Error(
+        `${fnTag} Unable to submit transaction, please provide service account details.`,
+      );
+    }
+
+    const wallet = await Wallets.newInMemoryWallet();
+    let serviceUserReference = "";
+
+    // Check if service ID exists, if not, use keychain service user.
+    if (serviceUserIdentity) {
+      const identity = JSON.parse(serviceUserIdentity);
+      await wallet.put(serviceUserName, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: serviceUserName,
+      });
+      serviceUserReference = serviceUserName;
+    } else {
+      const {
+        keychainId,
+        keychainRef,
+      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
+      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+      const identity = JSON.parse(fabricX509IdentityJson);
+      await wallet.put(keychainRef, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: keychainRef,
+      });
+      serviceUserReference = keychainRef;
+    }
+
+    const network: Network = await gateway.getNetwork(req.channelName);
+    const channel: Channel = await network.getChannel();
+    const client: Client = channel.client;
+
+    const serviceUser: Identity | undefined = await wallet.get(
+      serviceUserReference,
+    );
+
+    if (!serviceUser) {
+      throw new Error(
+        `${fnTag} Unable to generate endorsement, please provide service account details.`,
+      );
+    }
+
+    const provider = wallet.getProviderRegistry().getProvider(serviceUser.type);
+
+    const serviceUserContext = await provider.getUserContext(
+      serviceUser,
+      serviceUserReference,
+    );
+
+    const idx = client.newIdentityContext(serviceUserContext);
+    const endorsement: Endorsement = channel.newEndorsement(req.chaincodeName);
+    const proposalBytes = await endorsement.build(idx, {
+      fcn: req.functionName,
+      args: req.functionArgs,
+    });
+
+    return { endorsement, proposalBytes };
+  }
+
+  public async sendSignedTransaction(
+    req: SendSignedTransactionRequest,
+  ): Promise<void> {
+    const fnTag = `${this.className}#sendSignedTransaction()`;
+    const { connectionProfile } = this.opts;
+    const { signingCredential, serviceUserIdentity } = req;
+    const gateway = new Gateway();
+
+    // If no method of specifying service user credentials, throw error.
+    if (!serviceUserIdentity && !signingCredential) {
+      throw new Error(
+        `${fnTag} Unable to submit transaction, please provide service account details.`,
+      );
+    }
+
+    const wallet = await Wallets.newInMemoryWallet();
+
+    // Check if service ID exists, if not, use keychain service user.
+    if (serviceUserIdentity) {
+      const identity = JSON.parse(serviceUserIdentity);
+      await wallet.put("service", identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: "service",
+      });
+    } else {
+      const {
+        keychainId,
+        keychainRef,
+      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
+      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+      const identity = JSON.parse(fabricX509IdentityJson);
+      await wallet.put(keychainRef, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: keychainRef,
+      });
+    }
+
+    const network: Network = await gateway.getNetwork(req.channelName);
+    const channel: Channel = await network.getChannel();
+    const client: Client = channel.client;
+
+    const serviceUser: Identity | undefined = await wallet.get("service");
+
+    if (!serviceUser) {
+      throw new Error(
+        `${fnTag} Unable to submit transaction, please provide service account details.`,
+      );
+    }
+
+    const provider = wallet.getProviderRegistry().getProvider(serviceUser.type);
+
+    const serviceUserContext = await provider.getUserContext(
+      serviceUser,
+      "service",
+    );
+
+    // const discoverer: Discoverer = new Discoverer("peer0.org1.example.com",client , "TBD");
+
+    // const endpoint: Endpoint = client.getEndorser("TBD").endpoint;
+
+    // await discoverer.connect(endpoint);
+
+    // const discovery: DiscoveryService = await channel.newDiscoveryService("discovery");
+
+    const idx = client.newIdentityContext(serviceUserContext);
+
+    const endorsement: Endorsement = channel.newEndorsement("chaincode");
+
+    endorsement.build(idx, { fcn: "functionName", args: [] });
+
+    // discovery.build(idx,endorsement);
+    // discovery.sign(idx);
+
+    // const discovery_results = await discovery.send({targets: [discoverer], asLocalhost: true});
+
+    // const sendTransactionResponse: SendSignedTransactionResponse = await channel.sendSignedTransaction(
+    //   data as any,
+    // );
+
+    // if (sendTransactionResponse.status != "SUCCESS") {
+    //   throw new Error(
+    //     `${fnTag} Unable to submit transaction: ${sendTransactionResponse}`,
+    //   );
+    // }
+
+    // return sendTransactionResponse;
+    // return null;
+  }
+
+  public async sendSignedEndorsement(
+    req: SendSignedEndorsementRequest,
+  ): Promise<any> {
+    const fnTag = `${this.className}#sendSignedEndorsement()`;
+    const { connectionProfile } = this.opts;
+    const { signingCredential, serviceUserIdentity, serviceUserName } = req;
+
+    const signedProposal: Buffer = Buffer.from(req.signedProposal as any);
+
+    const gateway = new Gateway();
+
+    // If no method of specifying service user credentials, throw error.
+    if (!serviceUserIdentity && !signingCredential) {
+      throw new Error(
+        `${fnTag} Unable to submit proposal, please provide service account details.`,
+      );
+    }
+
+    const wallet = await Wallets.newInMemoryWallet();
+    let serviceUserReference = "";
+
+    // Check if service ID exists, if not, use keychain service user.
+    if (serviceUserIdentity) {
+      const identity = JSON.parse(serviceUserIdentity);
+      await wallet.put(serviceUserName, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: serviceUserName,
+      });
+      serviceUserReference = serviceUserName;
+    } else {
+      const {
+        keychainId,
+        keychainRef,
+      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
+      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+      const identity = JSON.parse(fabricX509IdentityJson);
+      await wallet.put(keychainRef, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: keychainRef,
+      });
+      serviceUserReference = keychainRef;
+    }
+
+    const network: Network = await gateway.getNetwork(req.channelName);
+    const channel: Channel = await network.getChannel();
+    const client: Client = channel.client;
+
+    const serviceUser: Identity | undefined = await wallet.get(
+      serviceUserReference,
+    );
+
+    if (!serviceUser) {
+      throw new Error(
+        `${fnTag} Unable to submit transaction, please provide service account details.`,
+      );
+    }
+    const provider = wallet.getProviderRegistry().getProvider(serviceUser.type);
+
+    const mspId = (connectionProfile.organizations[req.organisation] as any)
+      .mspid;
+
+    const serviceUserContext = await provider.getUserContext(
+      serviceUser,
+      serviceUserReference,
+    );
+    const idx = client.newIdentityContext(serviceUserContext);
+
+    // This is what I need to do in order to get this variables in the right format for the fabric SDK.
+    const endorsement = req.endorsement as any;
+    const finalEndorsement = new Endorsement(endorsement.chaincodeId, channel);
+    endorsement._payload = Buffer.from(endorsement._payload);
+    endorsement._action.proposal.header = Buffer.from(
+      endorsement._action.proposal.header,
+      "base64",
+    );
+    endorsement._action.proposal.payload = Buffer.from(
+      endorsement._action.proposal.payload,
+      "base64",
+    );
+    endorsement._action.header.channel_header = Buffer.from(
+      endorsement._action.header.channel_header,
+      "base64",
+    );
+    endorsement._action.header.signature_header = Buffer.from(
+      endorsement._action.header.signature_header,
+      "base64",
+    );
+
+    // I've got to do this as I get run time errors calling functions after casting req.endorsement to any, then back to
+    // endorsement again.
+    Object.assign(finalEndorsement, endorsement);
+    finalEndorsement.sign(signedProposal);
+
+    const endorsers = client.getEndorsers(mspId);
+
+    if (endorsers.length == 0) {
+      throw new Error(
+        `${fnTag} Unable to submit endorsement, no endorserers found in organisation.`,
+      );
+    }
+
+    const endorser: Endorser = endorsers[0];
+    const endpoint: Endpoint = endorser.endpoint;
+
+    const discoverer: Discoverer = new Discoverer(endorser.name, client, mspId);
+
+    await discoverer.connect(endpoint);
+
+    const discovery: DiscoveryService = await channel.newDiscoveryService(
+      "discovery",
+    );
+
+    discovery.build(idx, finalEndorsement);
+    discovery.sign(idx);
+
+    await discovery.send({ targets: [discoverer], asLocalhost: true });
+
+    const handler = await discovery.newHandler();
+
+    const endorse_request = {
+      handler: handler,
+      requestTimeout: 30000,
+    };
+
+    await finalEndorsement.send(endorse_request);
+    const commit: Commit = finalEndorsement.newCommit();
+    commit.build(idx, { endorsement: finalEndorsement });
+    commit.sign(idx);
+
+    return await commit.send(endorse_request);
+  }
+
+  public async sendSignedCommit(req: SendSignedCommitRequest): Promise<any> {
+    const fnTag = `${this.className}#sendSignedCommit()`;
+    const { connectionProfile } = this.opts;
+    const { signingCredential, serviceUserIdentity, serviceUserName } = req;
+    const gateway = new Gateway();
+
+    // If no method of specifying service user credentials, throw error.
+    if (!serviceUserIdentity && !signingCredential) {
+      throw new Error(
+        `${fnTag} Unable to send commit, please provide service account details.`,
+      );
+    }
+
+    const wallet = await Wallets.newInMemoryWallet();
+
+    // Check if service ID exists, if not, use keychain service user.
+    if (serviceUserIdentity) {
+      const identity = JSON.parse(serviceUserIdentity);
+      await wallet.put(serviceUserName, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: serviceUserName,
+      });
+    } else {
+      const {
+        keychainId,
+        keychainRef,
+      } = signingCredential as FabricSigningCredentialCactusKeychainRef;
+
+      const keychain = this.opts.pluginRegistry.findOneByKeychainId(keychainId);
+      const fabricX509IdentityJson = await keychain.get<string>(keychainRef);
+      const identity = JSON.parse(fabricX509IdentityJson);
+      await wallet.put(keychainRef, identity);
+      await gateway.connect(connectionProfile as ConnectionProfile, {
+        wallet,
+        identity: keychainRef,
+      });
+    }
   }
 
   public async transact(

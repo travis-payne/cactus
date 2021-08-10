@@ -5,7 +5,12 @@ import { GatewayOptions as FabricGatewayOptions } from "fabric-network";
 import { Checks, LoggerProvider } from "@hyperledger/cactus-common";
 import { LogLevelDesc } from "@hyperledger/cactus-common";
 import { PluginRegistry } from "@hyperledger/cactus-core";
-import { ConnectionProfile } from "../generated/openapi/typescript-axios/index";
+import {
+  ConnectionProfile,
+  FabricSigningCredential,
+  FabricSigningCredentialCactusKeychainRef,
+  FabricSigningCredentialType,
+} from "../generated/openapi/typescript-axios/index";
 import { GatewayDiscoveryOptions } from "../generated/openapi/typescript-axios/index";
 import { GatewayEventHandlerOptions } from "../generated/openapi/typescript-axios/index";
 import { GatewayOptions } from "../generated/openapi/typescript-axios/index";
@@ -37,7 +42,18 @@ export async function createGateway(
   const { defaultConnectionProfile } = ctx;
   const cp = ctx.gatewayOptions.connectionProfile || defaultConnectionProfile;
 
+  const credentials = ctx.gatewayOptions.wallet
+    .keychain as FabricSigningCredential;
+
   const wallet = await Wallets.newInMemoryWallet();
+
+  if (credentials.type == FabricSigningCredentialType.None) {
+    throw new Error("Cannot open gateway with no credentials");
+  }
+  const {
+    keychainId,
+    keychainRef,
+  } = credentials as FabricSigningCredentialCactusKeychainRef;
 
   let identity;
   if (ctx.gatewayOptions.wallet.json) {
@@ -45,12 +61,8 @@ export async function createGateway(
     identity = JSON.parse(ctx.gatewayOptions.wallet.json);
   } else if (ctx.gatewayOptions.wallet.keychain) {
     log.debug("Fetching wallet from JSON keychain...");
-    const keychain = ctx.pluginRegistry.findOneByKeychainId(
-      ctx.gatewayOptions.wallet.keychain.keychainId,
-    );
-    identity = await keychain.get<string>(
-      ctx.gatewayOptions.wallet.keychain.keychainRef,
-    );
+    const keychain = ctx.pluginRegistry.findOneByKeychainId(keychainId);
+    identity = await keychain.get<string>(keychainRef);
   } else {
     throw new Error(E_CREATE_GATEWAY_WALLET);
   }
