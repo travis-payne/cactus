@@ -78,7 +78,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
   let contractAddress: string;
 
   test("deploys contract via .json file", async (t2: Test) => {
-    const deployOut = await connector.deployContract({
+    const deployOut = await connector.deployContractNoKeychain({
       contractName: HelloWorldContractJson.contractName,
       web3SigningCredential: {
         ethAccount: firstHighNetWorthAccount,
@@ -105,7 +105,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
       "contractAddress typeof string OK",
     );
 
-    const { callOutput: helloMsg } = await connector.invokeContract({
+    const { callOutput: helloMsg } = await connector.invokeContractNoKeychain({
       contractName,
       invocationType: EthContractInvocationType.Call,
       methodName: "sayHello",
@@ -126,7 +126,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
 
   test("invoke Web3SigningCredentialType.GETHKEYCHAINPASSWORD", async (t2: Test) => {
     const newName = `DrCactus${uuidV4()}`;
-    const setNameOut = await connector.invokeContract({
+    const setNameOut = await connector.invokeContractNoKeychain({
       contractName,
       invocationType: EthContractInvocationType.Send,
       methodName: "setName",
@@ -142,7 +142,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
     t2.ok(setNameOut, "setName() invocation #1 output is truthy OK");
 
     try {
-      const setNameOutInvalid = await connector.invokeContract({
+      const setNameOutInvalid = await connector.invokeContractNoKeychain({
         contractName,
         invocationType: EthContractInvocationType.Send,
         methodName: "setName",
@@ -164,7 +164,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
       );
     }
 
-    const getNameOut = await connector.invokeContract({
+    const getNameOut = await connector.invokeContractNoKeychain({
       contractName,
       invocationType: EthContractInvocationType.Send,
       methodName: "getName",
@@ -178,7 +178,9 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
     });
     t2.ok(getNameOut.success, `getName() SEND invocation produced receipt OK`);
 
-    const { callOutput: getNameOut2 } = await connector.invokeContract({
+    const {
+      callOutput: getNameOut2,
+    } = await connector.invokeContractNoKeychain({
       contractName,
       invocationType: EthContractInvocationType.Call,
       methodName: "getName",
@@ -229,7 +231,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
 
   test("invoke Web3SigningCredentialType.PrivateKeyHex", async (t2: Test) => {
     const newName = `DrCactus${uuidV4()}`;
-    const setNameOut = await connector.invokeContract({
+    const setNameOut = await connector.invokeContractNoKeychain({
       contractName,
       invocationType: EthContractInvocationType.Send,
       methodName: "setName",
@@ -245,7 +247,7 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
     t2.ok(setNameOut, "setName() invocation #1 output is truthy OK");
 
     try {
-      const setNameOutInvalid = await connector.invokeContract({
+      const setNameOutInvalid = await connector.invokeContractNoKeychain({
         contractName,
         invocationType: EthContractInvocationType.Send,
         methodName: "setName",
@@ -266,22 +268,24 @@ test("Quorum Ledger Connector Plugin", async (t: Test) => {
         "setName() invocation with invalid nonce",
       );
     }
-    const { callOutput: getNameOut } = await connector.invokeContract({
-      contractName,
-      invocationType: EthContractInvocationType.Call,
-      methodName: "getName",
-      params: [],
-      gas: 1000000,
-      signingCredential: {
-        ethAccount: testEthAccount.address,
-        secret: testEthAccount.privateKey,
-        type: Web3SigningCredentialType.PrivateKeyHex,
+    const { callOutput: getNameOut } = await connector.invokeContractNoKeychain(
+      {
+        contractName,
+        invocationType: EthContractInvocationType.Call,
+        methodName: "getName",
+        params: [],
+        gas: 1000000,
+        signingCredential: {
+          ethAccount: testEthAccount.address,
+          secret: testEthAccount.privateKey,
+          type: Web3SigningCredentialType.PrivateKeyHex,
+        },
+        contractJSON: HelloWorldContractJson,
       },
-      contractJSON: HelloWorldContractJson,
-    });
+    );
     t2.equal(getNameOut, newName, `getName() output reflects the update OK`);
 
-    const getNameOut2 = await connector.invokeContract({
+    const getNameOut2 = await connector.invokeContractNoKeychain({
       contractName,
       invocationType: EthContractInvocationType.Send,
       methodName: "getName",

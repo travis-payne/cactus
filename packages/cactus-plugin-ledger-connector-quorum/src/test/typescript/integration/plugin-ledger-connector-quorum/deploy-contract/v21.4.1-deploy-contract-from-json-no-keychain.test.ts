@@ -123,7 +123,7 @@ test(testCase, async (t: Test) => {
   let contractAddress: string;
 
   test("deploys contract via .json file", async (t2: Test) => {
-    const deployOut = await connector.deployContract({
+    const deployOut = await connector.deployContractNoKeychain({
       contractName: HelloWorldContractJson.contractName,
       web3SigningCredential: {
         ethAccount: firstHighNetWorthAccount,
