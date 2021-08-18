@@ -612,6 +612,19 @@ export interface Web3SigningCredentialPrivateKeyHex {
     secret: string;
 }
 /**
+ * The response sent back by all web3SigningCredential endpoints
+ * @export
+ * @interface Web3SigningCredentialResponse
+ */
+export interface Web3SigningCredentialResponse {
+    /**
+     * 
+     * @type {Web3SigningCredentialType}
+     * @memberof Web3SigningCredentialResponse
+     */
+    Web3SigningCredentialUsed: Web3SigningCredentialType;
+}
+/**
  * 
  * @export
  * @enum {string}
@@ -893,6 +906,40 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * 
+         * @summary Signs contract with Geth Keychain Password
+         * @param {Web3SigningCredentialGethKeychainPassword} [web3SigningCredentialGethKeychainPassword] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        web3SigningCredentialGethKeychainPassword: async (web3SigningCredentialGethKeychainPassword?: Web3SigningCredentialGethKeychainPassword, options: any = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-quorum/web3-signing-credential-geth-keychain-password`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter, options.query);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(web3SigningCredentialGethKeychainPassword, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -968,6 +1015,17 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.runTransactionV1(runTransactionRequest, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
+        /**
+         * 
+         * @summary Signs contract with Geth Keychain Password
+         * @param {Web3SigningCredentialGethKeychainPassword} [web3SigningCredentialGethKeychainPassword] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async web3SigningCredentialGethKeychainPassword(web3SigningCredentialGethKeychainPassword?: Web3SigningCredentialGethKeychainPassword, options?: any): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Web3SigningCredentialResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.web3SigningCredentialGethKeychainPassword(web3SigningCredentialGethKeychainPassword, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
     }
 };
 
@@ -1036,6 +1094,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          */
         runTransactionV1(runTransactionRequest?: RunTransactionRequest, options?: any): AxiosPromise<RunTransactionResponse> {
             return localVarFp.runTransactionV1(runTransactionRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Signs contract with Geth Keychain Password
+         * @param {Web3SigningCredentialGethKeychainPassword} [web3SigningCredentialGethKeychainPassword] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        web3SigningCredentialGethKeychainPassword(web3SigningCredentialGethKeychainPassword?: Web3SigningCredentialGethKeychainPassword, options?: any): AxiosPromise<Web3SigningCredentialResponse> {
+            return localVarFp.web3SigningCredentialGethKeychainPassword(web3SigningCredentialGethKeychainPassword, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -1116,6 +1184,18 @@ export class DefaultApi extends BaseAPI {
      */
     public runTransactionV1(runTransactionRequest?: RunTransactionRequest, options?: any) {
         return DefaultApiFp(this.configuration).runTransactionV1(runTransactionRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Signs contract with Geth Keychain Password
+     * @param {Web3SigningCredentialGethKeychainPassword} [web3SigningCredentialGethKeychainPassword] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public web3SigningCredentialGethKeychainPassword(web3SigningCredentialGethKeychainPassword?: Web3SigningCredentialGethKeychainPassword, options?: any) {
+        return DefaultApiFp(this.configuration).web3SigningCredentialGethKeychainPassword(web3SigningCredentialGethKeychainPassword, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

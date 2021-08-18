@@ -170,6 +170,18 @@
                     "CALL"
                 ]
             },
+            "Web3SigningCredentialResponse": {
+                "type": "object",
+                "required": [
+                    "Web3SigningCredentialUsed"
+                ],
+                "description": "The response sent back by all web3SigningCredential endpoints",
+                "properties": {
+                    "Web3SigningCredentialUsed":{
+                        "$ref": "#/components/schemas/Web3SigningCredentialType"
+                    }
+                }
+            },
             "SolidityContractJsonArtifact": {
                 "type": "object",
                 "required": [
@@ -899,6 +911,40 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/InvokeContractV1Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-quorum/web3-signing-credential-geth-keychain-password": {
+            "post": {
+                "x-hyperledger-cactus": {
+                    "http": {
+                        "verbLowerCase": "post",
+                        "path": "/api/v1/plugins/@hyperledger/cactus-plugin-ledger-connector-quorum/web3-signing-credential-geth-keychain-password"
+                    }
+                },
+                "operationId": "web3SigningCredentialGethKeychainPassword",
+                "summary": "Signs contract with Geth Keychain Password",
+                "parameters": [],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Web3SigningCredentialGethKeychainPassword"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Web3SigningCredentialResponse"
                                 }
                             }
                         }

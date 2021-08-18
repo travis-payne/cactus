@@ -33,6 +33,8 @@ import {
   LogLevelDesc,
 } from "@hyperledger/cactus-common";
 
+import { Web3SigningCredentialGethKeychainPasswordEndpoint } from "./web-services/web3-signing-credential-geth-keychain-password";
+
 import { DeployContractSolidityBytecodeEndpoint } from "./web-services/deploy-contract-solidity-bytecode-endpoint";
 import { DeployContractSolidityBytecodeEndpointNoKeychain } from "./web-services/deploy-contract-solidity-bytecode-endpoint-no-keychain";
 
@@ -50,15 +52,13 @@ import {
   Web3SigningCredentialCactusKeychainRef,
   Web3SigningCredentialPrivateKeyHex,
   Web3SigningCredentialType,
+  // Web3SigningCredentialResponse,
 } from "./generated/openapi/typescript-axios/";
 
 import { RunTransactionEndpoint } from "./web-services/run-transaction-endpoint";
 import { InvokeContractEndpoint } from "./web-services/invoke-contract-endpoint";
 import { InvokeContractEndpointNoKeychain } from "./web-services/invoke-contract-endpoint-no-keychain";
-import {
-  isWeb3SigningCredentialCactusKeychainRef,
-  isWeb3SigningCredentialNone,
-} from "./model-type-guards";
+import { isWeb3SigningCredentialNone } from "./model-type-guards";
 
 import { PrometheusExporter } from "./prometheus-exporter/prometheus-exporter";
 import {
@@ -207,6 +207,13 @@ export class PluginLedgerConnectorQuorum
       endpoints.push(endpoint);
     }
     {
+      const endpoint = new Web3SigningCredentialGethKeychainPasswordEndpoint({
+        connector: this,
+        logLevel: this.options.logLevel,
+      });
+      endpoints.push(endpoint);
+    }
+    {
       const opts: IGetPrometheusExporterMetricsEndpointV1Options = {
         connector: this,
         logLevel: this.options.logLevel,
@@ -289,101 +296,6 @@ export class PluginLedgerConnectorQuorum
         contractJSON.networks[networkId].address,
       );
       this.contracts[contractName] = contract;
-    } else if (
-      !isWeb3SigningCredentialCactusKeychainRef(req.signingCredential)
-    ) {
-      const networkId = await this.web3.eth.net.getId();
-
-      const contractJSON = req.contractJSON as any;
-      if (
-        contractJSON.networks === undefined ||
-        contractJSON.networks[networkId] === undefined ||
-        contractJSON.networks[networkId].address === undefined
-      ) {
-        if (isWeb3SigningCredentialNone(req.signingCredential)) {
-          throw new Error(`${fnTag} Cannot deploy contract with pre-signed TX`);
-        }
-        const web3SigningCredential = req.signingCredential as
-          | Web3SigningCredentialPrivateKeyHex
-          | Web3SigningCredentialCactusKeychainRef;
-
-        const receipt = await this.transact({
-          transactionConfig: {
-            data: `0x${contractJSON.bytecode}`,
-            from: web3SigningCredential.ethAccount,
-            gas: req.gas,
-            gasPrice: req.gasPrice,
-          },
-          web3SigningCredential,
-        });
-
-        const address = {
-          address: receipt.transactionReceipt.contractAddress,
-        };
-        const network = { [networkId]: address };
-        contractJSON.networks = network;
-      }
-      const contract = new this.web3.eth.Contract(
-        contractJSON.abi,
-        contractJSON.networks[networkId].address,
-      );
-      this.contracts[contractName] = contract;
-
-      contractInstance = this.contracts[contractName];
-      if (req.contractAbi != undefined) {
-        let abi;
-        if (typeof req.contractAbi === "string") {
-          abi = JSON.parse(req.contractAbi);
-        } else {
-          abi = req.contractAbi;
-        }
-
-        const { contractAddress } = req;
-        contractInstance = new this.web3.eth.Contract(abi, contractAddress);
-      }
-
-      const methodRef = contractInstance.methods[req.methodName];
-      Checks.truthy(methodRef, `${fnTag} YourContract.${req.methodName}`);
-
-      const method: ContractSendMethod = methodRef(...req.params);
-      if (req.invocationType === EthContractInvocationType.Call) {
-        contractInstance.methods[req.methodName];
-        const callOutput = await (method as any).call();
-        const success = true;
-        return { success, callOutput };
-      } else if (req.invocationType === EthContractInvocationType.Send) {
-        if (isWeb3SigningCredentialNone(req.signingCredential)) {
-          throw new Error(`${fnTag} Cannot deploy contract with pre-signed TX`);
-        }
-        const web3SigningCredential = req.signingCredential as
-          | Web3SigningCredentialPrivateKeyHex
-          | Web3SigningCredentialCactusKeychainRef;
-        const payload = (method.send as any).request();
-        const { params } = payload;
-        const [transactionConfig] = params;
-        if (req.gas == undefined) {
-          req.gas = await this.web3.eth.estimateGas(transactionConfig);
-        }
-        transactionConfig.from = web3SigningCredential.ethAccount;
-        transactionConfig.gas = req.gas;
-        transactionConfig.gasPrice = req.gasPrice;
-        transactionConfig.value = req.value;
-        transactionConfig.nonce = req.nonce;
-
-        const txReq: RunTransactionRequest = {
-          transactionConfig,
-          web3SigningCredential,
-          timeoutMs: req.timeoutMs || 60000,
-        };
-        const out = await this.transact(txReq);
-        const success = out.transactionReceipt.status;
-        const data = { success, out };
-        return data;
-      } else {
-        throw new Error(
-          `${fnTag} Unsupported invocation type ${req.invocationType}`,
-        );
-      }
     } else if (
       req.keychainId == undefined &&
       req.contractAbi == undefined &&
@@ -833,6 +745,33 @@ export class PluginLedgerConnectorQuorum
       `${fnTag} Cannot deploy contract without keychainId and the contractName`,
     );
   }
+
+  // public async signWeb3SigningCredentialGethKeychainPassword(
+  //   req: Web3SigningCredentialGethKeychainPassword,
+  // ): Promise<Web3SigningCredentialResponse> {
+  //   const fnTag = `${this.className}#deployContractNoKeychain()`;
+  //   Checks.truthy(req, `${fnTag} req`);
+
+  //   const web3SigningCredentialUsed = req.type as Web3SigningCredentialGethKeychainPassword;
+
+  //   return {Web3SigningCredentialType.};
+  // }
+
+  /*            "Web3SigningCredentialResponse": {
+                "type": "object",
+                "required": [
+                    "Web3SigningCredentialUsed"
+                ],
+                "description": "The response sent back by all web3SigningCredential endpoints",
+                "properties": {
+                    "Web3SigningCredentialUsed":{
+                        "type": "string",
+                        "description": "String value of what signing credential was used",
+                        "minLength": 0,
+                        "maxLength": 120
+                    }
+                }
+            },*/
 
   public async deployContractNoKeychain(
     req: DeployContractSolidityBytecodeV1RequestNoKeychain,
